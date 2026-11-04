@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- The page may only talk to its own site: files you open cannot be sent anywhere else. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="description" content="Edit, organize, compare and convert PDFs in the browser. Files never leave your computer.">
 <title>Folio PDF Editor</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='5' y='3' width='22' height='26' rx='3' fill='%230B6E8A'/%3E%3Cpath d='M10 11h12M10 16h12M10 21h8' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -554,6 +556,21 @@ body.no-doc #pages, body.no-doc #pagesView, body.no-doc #thumbs, body.no-doc #in
 .btn.primary.danger { background: var(--danger); border-color: var(--danger); color: #fff; box-shadow: none; }
 .btn.primary.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, black); border-color: transparent; }
 #drop { border-radius: 14px; inset: 10px; border-width: 2px; }
+/* local-only reassurance */
+.local-badge { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--raise); color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+.local-badge svg.i { width: 14px; height: 14px; color: #1F8F55; stroke-width: 1.8; }
+.local-badge:hover { color: var(--ink); border-color: var(--line-strong); }
+.start-local { display: flex; gap: 10px; align-items: flex-start; text-align: left; margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: var(--field); }
+.start-local svg.i { width: 16px; height: 16px; color: #1F8F55; margin-top: 2px; flex: none; }
+.start-local p { margin: 0; font-size: 13px !important; color: var(--muted); max-width: none !important; text-wrap: pretty; }
+.start-local b { color: var(--ink); font-weight: 600; }
+.local-info { width: min(460px, 100%); }
+.local-list { margin: 0; display: flex; flex-direction: column; gap: 14px; }
+.local-list dt { font-weight: 600; font-size: 13.5px; }
+.local-list dd { margin: 2px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.local-info .actions { justify-content: flex-end; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .local-badge svg.i, :root:not([data-theme="light"]) .start-local svg.i { color: #4CC38A; } }
+:root[data-theme="dark"] .local-badge svg.i, :root[data-theme="dark"] .start-local svg.i { color: #4CC38A; }
 </style>
 
 </head>
@@ -585,6 +602,7 @@ body.no-doc #pages, body.no-doc #pagesView, body.no-doc #thumbs, body.no-doc #in
     <button class="btn icon flat" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
     <button class="btn icon flat" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg class="i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg></button>
     <span class="sep"></span>
+    <button class="local-badge" id="localInfo" title="Your PDF stays on this device. Click for details."><svg class="i" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/></svg><span class="lbl-sm">On this device only</span></button>
     <button class="btn icon flat" id="theme" title="Switch to dark theme" aria-label="Switch to dark theme"></button>
     <button class="btn flat" id="open" title="Open a PDF (Ctrl+O)"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5a1 1 0 011-1h5l2 2h7a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1z"/></svg><span class="lbl-sm">Open</span></button>
     <button class="btn flat" id="word" title="Export an editable Word document"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M8.5 11l1.5 6 2-4.5 2 4.5 1.5-6"/></svg><span class="lbl-sm">Export to Word</span></button>
@@ -612,9 +630,13 @@ body.no-doc #pages, body.no-doc #pagesView, body.no-doc #thumbs, body.no-doc #in
       <div class="start-card">
         <svg class="start-mark" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 2.5h7.2l3.8 3.8v10.2a1 1 0 01-1 1h-10a1 1 0 01-1-1v-13a1 1 0 011-1z" fill="currentColor"/><path d="M11.5 2.6v3.2a.8.8 0 00.8.8h3.1" fill="none" stroke="var(--mark-fold)" stroke-width="1.1"/><path d="M6.8 10.2h6.4M6.8 13h4.2" stroke="var(--mark-fold)" stroke-width="1.1" stroke-linecap="round"/></svg>
         <h1>Open a PDF</h1>
-        <p>Drop a file anywhere in this window, or choose one. It stays on this computer and is never uploaded.</p>
+        <p>Drop a file anywhere in this window, or choose one.</p>
         <button class="btn primary lg" id="startOpen">Choose PDF</button>
         <p class="start-keys"><kbd id="startMod">Ctrl</kbd><kbd>O</kbd></p>
+        <div class="start-local">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/></svg>
+          <p><b>Your PDF stays on this device.</b> It opens inside this browser tab and is never uploaded or saved anywhere. Closing the PDF or the tab clears it.</p>
+        </div>
       </div>
     </div>
     <div id="pages"></div>
@@ -5907,7 +5929,7 @@ function inspChanges(body, title) {
       const dt = el('dt', null, label), dd = el('dd'); ks.forEach(k => dd.append(el('kbd', null, k))); keys.append(dt, dd);
     });
     body.append(sec('Shortcuts', keys));
-    body.append(el('p', 'hint privacy', 'Files stay on this computer. Nothing is uploaded, and Download saves a new copy.'));
+    body.append(el('p', 'hint privacy', 'Your PDF stays on this device. Nothing is uploaded, and Download saves a new copy.'));
     return;
   }
   const list = el('ul', 'changes');
@@ -6884,6 +6906,28 @@ async function closePdf() {
   $('#startOpen').focus();
 }
 $('#closeDoc').onclick = closePdf;
+/* where files go: explained in plain terms */
+function showLocalInfo() {
+  const back = el('div', 'modal-back');
+  const box = el('div', 'modal local-info'); box.setAttribute('role', 'dialog'); box.setAttribute('aria-modal', 'true'); box.setAttribute('aria-labelledby', 'liTitle');
+  const h = el('h3', null, 'Your PDF stays on this device'); h.id = 'liTitle';
+  box.append(h);
+  const items = [
+    ['Opened in this tab only', 'When you open a PDF, your browser reads it into this tab\'s memory. It is not uploaded to any server, including the one this page came from.'],
+    ['Nothing is kept', 'Folio doesn\'t save your files in the browser. Closing the PDF, reloading or closing the tab clears it. Only your theme and sidebar choices are remembered.'],
+    ['Saving is up to you', 'Download and Export to Word create a new file on your computer, in your downloads folder. The original file is never changed.'],
+    ['What the page loads', 'The app downloads its own code and fonts when the page opens. None of those requests carry your document.']
+  ];
+  const dl = el('dl', 'local-list');
+  items.forEach(([t, d]) => { const w = el('div'); w.append(el('dt', null, t), el('dd', null, d)); dl.append(w); });
+  box.append(dl);
+  const acts = el('div', 'actions'); const ok = el('button', 'btn primary', 'Got it'); acts.append(ok); box.append(acts);
+  const done = () => { back.remove(); $('#localInfo').focus(); };
+  ok.onclick = done; back.addEventListener('click', (e) => { if (e.target === back) done(); });
+  back.addEventListener('keydown', (e) => { if (e.key === 'Escape') done(); });
+  back.append(box); document.body.append(back); setTimeout(() => ok.focus(), 20);
+}
+$('#localInfo').onclick = showLocalInfo;
 $('#startOpen').onclick = () => { $('#fileIn').value = ''; $('#fileIn').click(); };
 if (/Mac|iP/.test(navigator.platform || navigator.userAgent)) $('#startMod').textContent = '⌘';
 

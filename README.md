@@ -13,6 +13,15 @@ A PDF editor that runs entirely in the browser. Open a PDF, review it, edit it, 
 - **Export to Word** – editable .docx with real paragraphs, headings, lists and tables.
 - Opens password-protected and restricted PDFs (with the password). Korean and other non-Latin text is supported.
 
+## Where your files go
+
+Nowhere. When you open a PDF, the browser reads it into the memory of that tab and Folio works on it there.
+
+- Files are never uploaded, not even to the site hosting the page.
+- Nothing is saved in the browser. Closing the PDF, reloading or closing the tab clears it. Only the theme and sidebar choices are remembered.
+- Download and Export to Word create new files in your downloads folder; the original is never changed.
+- `index.html` sets a Content Security Policy with `connect-src 'self'`, so the page cannot open a connection to any other site. Scripts may only load from the two library CDNs below.
+
 ## Hosting with GitHub Pages
 
 1. In the repository on GitHub, go to **Settings → Pages**.
