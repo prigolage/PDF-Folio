@@ -9,30 +9,44 @@
 <style>[hidden]{display:none!important}body{margin:0}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400..700&display=swap">
 <style>
 /* Layout: a working desk — sticky tool bar, scrolling stack of white pages, inspector rail (bottom sheet on phones). */
+@font-face { font-family: "Instrument Sans Folio"; src: url("fonts/InstrumentSans-Regular.ttf") format("truetype"); font-weight: 400 549; font-style: normal; font-display: swap; }
+@font-face { font-family: "Instrument Sans Folio"; src: url("fonts/InstrumentSans-Bold.ttf") format("truetype"); font-weight: 550 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Instrument Sans Folio"; src: url("fonts/InstrumentSans-Italic.ttf") format("truetype"); font-weight: 400 800; font-style: italic; font-display: swap; }
+/* Folio: a quiet, precise frame around the document. One family (Instrument Sans), cobalt as the only accent. */
 :root {
-  --desk: #E3E8EA; --panel: #FAFBFB; --raise: #FFFFFF; --ink: #16232A; --muted: #5A6A72; --line: #CBD4D8;
-  --accent: #0B6E8A; --accent-ink: #FFFFFF; --accent-soft: rgba(11,110,138,.12);
-  --mark: #D99400; --mark-soft: rgba(227,160,8,.20); --danger: #B42318; --danger-soft: rgba(180,35,24,.10);
-  --paper: #FFFFFF; --shadow: 0 1px 2px rgba(22,35,42,.12), 0 6px 18px rgba(22,35,42,.10);
-  --sel: #2B6BE6; --sel-soft: rgba(43,107,230,.10); --box: rgba(96,112,124,.2);
+  --desk: #E6E8EC; --panel: #FAFAFB; --raise: #FFFFFF; --field: #F1F2F4; --ink: #16181D; --muted: #61666F; --faint: #8D929B;
+  --line: #E2E4E8; --line-strong: #CFD2D8;
+  --accent: #2E52E0; --accent-ink: #FFFFFF; --accent-soft: rgba(46,82,224,.09); --accent-hover: #2445C7;
+  --mark: #C98400; --mark-soft: rgba(214,150,10,.16); --danger: #C2361F; --danger-soft: rgba(194,54,31,.08);
+  --paper: #FFFFFF; --mark-fold: #FFFFFF;
+  --shadow: 0 0 0 1px rgba(17,22,34,.05), 0 1px 2px rgba(17,22,34,.06), 0 14px 34px -10px rgba(17,22,34,.24);
+  --shadow-pop: 0 0 0 1px rgba(17,22,34,.07), 0 16px 40px -8px rgba(17,22,34,.28);
+  --shadow-btn: 0 1px 1px rgba(17,22,34,.05);
+  --sel: #2E52E0; --sel-soft: rgba(46,82,224,.10); --box: rgba(80,92,110,.18);
   --diff-add: rgba(232,163,8,.34); --diff-del: rgba(214,48,39,.22); --diff-del-line: #B42318;
-  --f-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --f-brand: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif;
-  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-ui: "Instrument Sans", "Instrument Sans Folio", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-brand: var(--f-ui); --f-data: var(--f-ui);
+  --r-sm: 6px; --r: 8px; --r-lg: 12px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --desk: #0E1417; --panel: #151E22; --raise: #1B262B; --ink: #E3EBEE; --muted: #8DA0A8; --line: #2B3A41;
-  --accent: #4FB0CC; --accent-ink: #061317; --accent-soft: rgba(79,176,204,.16);
-  --mark: #F0B429; --mark-soft: rgba(240,180,41,.22); --danger: #F07167; --danger-soft: rgba(240,113,103,.14);
-  --paper: #FFFFFF; --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45); --diff-del-line: #F07167; color-scheme: dark } }
+  --desk: #0C0D10; --panel: #15171B; --raise: #1C1F24; --field: #22252B; --ink: #ECEEF1; --muted: #9CA2AC; --faint: #737984;
+  --line: #262A31; --line-strong: #343943;
+  --accent: #7C94FF; --accent-ink: #0B1026; --accent-soft: rgba(124,148,255,.14); --accent-hover: #93A7FF;
+  --mark: #F0B429; --mark-soft: rgba(240,180,41,.20); --danger: #FF7A66; --danger-soft: rgba(255,122,102,.12);
+  --paper: #FFFFFF; --mark-fold: #15171B;
+  --shadow: 0 0 0 1px rgba(0,0,0,.4), 0 18px 40px -12px rgba(0,0,0,.7); --shadow-pop: 0 0 0 1px rgba(255,255,255,.06), 0 18px 44px -8px rgba(0,0,0,.7); --shadow-btn: none;
+  --sel: #4C6EF5; --sel-soft: rgba(76,110,245,.14); --box: rgba(80,92,110,.13); --diff-del-line: #FF7A66; color-scheme: dark } }
 :root[data-theme="dark"] {
-  --desk: #0E1417; --panel: #151E22; --raise: #1B262B; --ink: #E3EBEE; --muted: #8DA0A8; --line: #2B3A41;
-  --accent: #4FB0CC; --accent-ink: #061317; --accent-soft: rgba(79,176,204,.16);
-  --mark: #F0B429; --mark-soft: rgba(240,180,41,.22); --danger: #F07167; --danger-soft: rgba(240,113,103,.14);
-  --paper: #FFFFFF; --shadow: 0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.45); --diff-del-line: #F07167; color-scheme: dark }
+  --desk: #0C0D10; --panel: #15171B; --raise: #1C1F24; --field: #22252B; --ink: #ECEEF1; --muted: #9CA2AC; --faint: #737984;
+  --line: #262A31; --line-strong: #343943;
+  --accent: #7C94FF; --accent-ink: #0B1026; --accent-soft: rgba(124,148,255,.14); --accent-hover: #93A7FF;
+  --mark: #F0B429; --mark-soft: rgba(240,180,41,.20); --danger: #FF7A66; --danger-soft: rgba(255,122,102,.12);
+  --paper: #FFFFFF; --mark-fold: #15171B;
+  --shadow: 0 0 0 1px rgba(0,0,0,.4), 0 18px 40px -12px rgba(0,0,0,.7); --shadow-pop: 0 0 0 1px rgba(255,255,255,.06), 0 18px 44px -8px rgba(0,0,0,.7); --shadow-btn: none;
+  --sel: #4C6EF5; --sel-soft: rgba(76,110,245,.14); --box: rgba(80,92,110,.13); --diff-del-line: #FF7A66; color-scheme: dark }
 
 *, *::before, *::after { box-sizing: border-box; }
 html, body { height: 100%; }
@@ -361,12 +375,179 @@ label.num:focus-within { border-color: var(--accent); }
 .drag-layer canvas { position: absolute; outline: 1px solid var(--sel); }
 .moving { visibility: hidden !important; }
 .moving * { visibility: hidden !important; }
+
+/* ================= finish layer: type, chrome, controls ================= */
+body { font-size: 13.5px; letter-spacing: -0.003em; -webkit-font-smoothing: antialiased; font-feature-settings: "tnum" 1, "cv11" 1; }
+svg.i { stroke-width: 1.6; }
+/* top bar */
+.bar { min-height: 52px; padding-block: 8px; gap: 14px; background: var(--panel); }
+.brand { align-items: center; gap: 10px; }
+.brand .mark { color: var(--accent); display: grid; place-items: center; width: 22px; height: 22px; flex: none; }
+.brand .mark svg { width: 22px; height: 22px; }
+.wordmark { font-weight: 650; font-size: 16px; letter-spacing: -0.02em; white-space: nowrap; }
+.doc-name { display: flex; align-items: baseline; gap: 8px; min-width: 0; padding-left: 12px; margin-left: 2px; border-left: 1px solid var(--line); font-family: var(--f-ui); font-size: 13px; color: var(--ink); }
+.doc-name .fn { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.doc-name .pc { color: var(--faint); white-space: nowrap; font-size: 12.5px; }
+.viewctl { background: var(--field); border-radius: var(--r); padding: 2px; gap: 0; }
+.viewctl .sep { margin-block: 6px; }
+.viewctl .btn.flat { width: 30px; height: 28px; padding: 0; justify-content: center; border-radius: var(--r-sm); }
+.pgnum { width: 38px; height: 26px; border: 1px solid transparent; background: var(--raise); box-shadow: var(--shadow-btn); font-family: var(--f-ui); font-size: 12.5px; font-weight: 500; border-radius: var(--r-sm); }
+.pgnum:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.pgcount { font-family: var(--f-ui); font-size: 12.5px; color: var(--muted); }
+.zsel { height: 26px; border: 0; background: transparent; font-family: var(--f-ui); font-size: 12.5px; font-weight: 500; padding: 0 4px; cursor: pointer; }
+.status { font-family: var(--f-ui); font-size: 12px; color: var(--faint); display: inline-flex; align-items: center; gap: 6px; }
+.status:not(:empty)::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--line-strong); border-top-color: var(--accent); animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .status:not(:empty)::before { animation: none; } }
+/* buttons */
+.btn { height: 32px; padding: 0 12px; border-radius: var(--r); border: 1px solid var(--line-strong); background: var(--raise); box-shadow: var(--shadow-btn); font-weight: 500; font-size: 13px; color: var(--ink); gap: 7px; }
+.btn:hover:not(:disabled) { background: var(--field); border-color: var(--line-strong); }
+.btn:active:not(:disabled) { transform: translateY(0.5px); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: 0 1px 2px rgba(30,50,140,.25), inset 0 1px 0 rgba(255,255,255,.14); }
+.btn.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.danger { color: var(--danger); }
+.btn.danger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger-soft); }
+.btn.icon { width: 32px; padding: 0; justify-content: center; }
+.btn.flat { border-color: transparent; background: transparent; box-shadow: none; }
+.btn.flat:hover:not(:disabled) { background: var(--field); border-color: transparent; }
+.btn.sm { height: 28px; padding: 0 10px; font-size: 12.5px; }
+.btn.sm.icon { width: 28px; padding: 0; }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.btn:disabled { opacity: .4; }
+/* tool rail */
+.rail { flex: 0 0 68px; padding: 10px 8px; gap: 4px; background: var(--panel); }
+.tool { padding: 8px 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 500; color: var(--muted); gap: 5px; }
+.tool svg.i { width: 20px; height: 20px; stroke-width: 1.55; }
+.tool:hover { background: var(--field); color: var(--ink); }
+.tool[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; box-shadow: none; }
+.rail-sep { margin: 6px 12px; background: var(--line); }
+/* document canvas */
+#pages { gap: 28px; padding-block: 28px 140px; }
+#pages .page .num { display: none; }
+.page { border-radius: 1px; }
+.banner { position: sticky; top: 12px; z-index: 5; max-width: 620px; padding: 6px 6px 6px 14px; border: 0; border-radius: 12px; background: var(--raise); box-shadow: var(--shadow-pop); gap: 8px; flex-wrap: nowrap; }
+.banner span { color: var(--ink); font-size: 13px; flex: 1 1 auto; min-width: 0; }
+#thumbs { flex-basis: 152px; }
+.sthumb .stn { font-family: var(--f-ui); font-size: 11.5px; }
+.sthumb.cur .stp { outline-color: var(--accent); }
+.sthumb.cur .stn { color: var(--accent); }
+/* inspector */
+#inspector { width: 288px; background: var(--panel); }
+.insp-head { min-height: 52px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.insp-head h2 { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; text-transform: none; color: var(--ink); display: flex; align-items: baseline; gap: 8px; }
+.insp-head h2 .sub { font-size: 12.5px; font-weight: 400; color: var(--faint); }
+.sec { padding: 14px 16px 16px; gap: 10px; border-bottom: 1px solid var(--line); }
+.sec h3 { font-size: 12.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.field > label, .lbl { font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.field .sub { font-size: 11.5px; color: var(--muted); }
+.field textarea, .field input[type=text], .field input[type=number], .field select, .field input[type=password] {
+  background: var(--field); border: 1px solid transparent; border-radius: var(--r-sm); padding: 6px 9px; min-height: 32px; font-size: 13px; color: var(--ink); transition: border-color .12s, box-shadow .12s, background .12s; }
+.field textarea { line-height: 1.45; }
+.field textarea:hover, .field input:hover, .field select:hover { border-color: var(--line-strong); }
+.field textarea:focus, .field input:focus, .field select:focus { outline: none; background: var(--raise); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+label.num { background: var(--field); border: 1px solid transparent; border-radius: var(--r-sm); min-height: 32px; transition: border-color .12s, box-shadow .12s, background .12s; }
+label.num:hover { border-color: var(--line-strong); }
+label.num:focus-within { background: var(--raise); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+label.num span { font-family: var(--f-ui); font-size: 11.5px; font-weight: 500; color: var(--faint); }
+label.num input { font-family: var(--f-ui); font-size: 13px; }
+input[type=color], .field input[type=color] { width: 36px; height: 32px; padding: 3px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); background: var(--raise); }
+.toggle-b { width: 32px; padding: 0; justify-content: center; }
+.toggle-b.i { font-family: var(--f-ui); font-style: italic; font-weight: 500; }
+.orig { font-family: var(--f-ui); font-size: 12.5px; line-height: 1.45; background: var(--field); border: 0; color: var(--muted); }
+.orig-d summary { font-size: 12.5px; color: var(--muted); }
+.hint { font-size: 12.5px; color: var(--faint); line-height: 1.45; }
+.note { font-size: 12.5px; }
+.note.warn { background: var(--mark-soft); color: var(--ink); border-radius: var(--r); padding: 9px 11px; }
+.insp-body > .actions { margin-top: 14px; }
+.changes li { grid-template-columns: auto 1fr auto; padding: 8px; border-radius: var(--r); }
+.changes li:hover { background: var(--field); }
+.changes .pg { font-family: var(--f-ui); font-size: 11px; font-weight: 600; color: var(--muted); background: var(--field); border-radius: 5px; padding: 2px 6px; margin-top: 1px; }
+.changes li:hover .pg { background: var(--raise); }
+.changes ins { background: var(--mark-soft); border-radius: 3px; }
+.empty-state { display: flex; flex-direction: column; gap: 4px; margin: 16px 16px 4px !important; }
+.empty-title { margin: 0; font-size: 14px; font-weight: 600; }
+.empty-state .hint { margin: 0; }
+.keys { display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; margin: 0; align-items: center; }
+.keys dt { font-size: 13px; color: var(--muted); }
+.keys dd { margin: 0; display: flex; gap: 4px; justify-content: flex-end; }
+kbd, .ctx-item kbd { font-family: var(--f-ui); font-size: 11.5px; font-weight: 500; min-width: 22px; height: 22px; padding: 0 6px; display: inline-grid; place-items: center; border-radius: 5px; background: var(--raise); border: 1px solid var(--line-strong); border-bottom-width: 2px; color: var(--muted); line-height: 1; }
+.ctx-item kbd { background: transparent; border: 0; min-width: 0; padding: 0; height: auto; color: var(--faint); }
+.privacy { margin: 14px 16px 0 !important; }
+.grp li { background: var(--field); border: 1px solid transparent; }
+/* overlays and popups */
+.ctx { border-radius: 10px; box-shadow: var(--shadow-pop); border: 0; padding: 5px; }
+.ctx-item { border-radius: 6px; padding: 7px 10px; font-size: 13px; }
+.modal { border: 0; border-radius: 14px; box-shadow: var(--shadow-pop); padding: 22px; gap: 14px; }
+.modal h3 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.modal-back { background: rgba(12,15,24,.42); backdrop-filter: blur(2px); }
+#toast { background: #1A1C22; color: #F2F3F5; border-radius: 10px; padding: 10px 16px; font-size: 13px; box-shadow: var(--shadow-pop); }
+.pages-bar { background: var(--panel); padding-block: 10px; }
+.pages-bar .count { font-family: var(--f-ui); font-size: 12.5px; }
+.thumb { border-radius: 10px; border-width: 1.5px; }
+.thumb .meta { font-family: var(--f-ui); font-size: 12px; }
+.cmp-bar { background: var(--panel); }
+.cmp-title, .cmp-count { font-family: var(--f-ui); font-size: 12.5px; }
+.cmp-bar select { background: var(--field); border: 1px solid transparent; border-radius: var(--r-sm); height: 30px; }
+.lower-chip { font-family: var(--f-ui); font-size: 12px; border: 0; box-shadow: var(--shadow-pop); border-radius: 10px; }
+.zoom-val { font-family: var(--f-ui); }
+@media (max-width: 860px) {
+  .doc-name { border-left: 0; padding-left: 0; }
+  .rail { flex: none; padding: 4px 8px; }
+  .banner { top: 8px; }
+}
+/* finish layer, round 2 */
+.insp-body textarea, .insp-body input[type=text], .insp-body input[type=number], .insp-body select {
+  width: 100%; min-width: 0; background: var(--field); border: 1px solid transparent; border-radius: var(--r-sm); padding: 6px 9px; min-height: 32px; font: inherit; font-size: 13px; color: var(--ink); transition: border-color .12s, box-shadow .12s, background .12s; }
+.insp-body textarea { line-height: 1.45; resize: vertical; min-height: 76px; }
+.insp-body textarea:hover, .insp-body input:hover, .insp-body select:hover { border-color: var(--line-strong); }
+.insp-body textarea:focus, .insp-body input:focus, .insp-body select:focus { outline: none; background: var(--raise); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.insp-body label.num input, .insp-body label.num input:hover, .insp-body label.num input:focus { background: none; border: 0; box-shadow: none; min-height: 30px; padding: 0 8px 0 0; }
+#inspector { width: 300px; }
+.xyw { gap: 6px; }
+label.num { padding-left: 9px; gap: 5px; }
+.actions { gap: 6px; }
+.actions .btn { height: 30px; padding: 0 11px; font-size: 12.5px; }
+.rail { flex-basis: 74px; }
+.tool { white-space: nowrap; font-size: 11px; }
+.banner { max-width: 640px; }
+.banner span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root { --box: rgba(80,92,110,.12); }
+.mode-edit .hit.blk, .mode-edit .imgbox, .mode-edit .added { outline-color: var(--box); }
+.mode-edit .hit.blk:hover, .mode-edit .imgbox:hover, .mode-edit .added:hover { outline-color: var(--sel); }
+.hit.blk { border-radius: 2px; }
+.toggle-b { font-size: 13px; }
+@media (max-width: 860px) { .banner span { white-space: normal; } #inspector { width: auto; } }
+/* finish layer, round 3: organize bar, compare bar, dialogs */
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15px; height: 15px; }
+.modal-back { backdrop-filter: none; }
+.pages-bar { gap: 2px; padding-block: 8px; flex-wrap: wrap; align-items: center; }
+.pages-bar .count { margin-right: 12px; font-weight: 500; color: var(--ink); }
+.pages-bar .btn { border-color: transparent; background: transparent; box-shadow: none; height: 32px; padding: 0 10px; color: var(--ink); }
+.pages-bar .btn:hover:not(:disabled) { background: var(--field); }
+.pages-bar .btn.danger { color: var(--danger); }
+.pages-bar .btn.danger:hover:not(:disabled) { background: var(--danger-soft); }
+.pages-bar .sep { height: 20px; align-self: center; margin: 0 6px; }
+#grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 22px; padding-top: 22px; }
+.thumb.picked { background: var(--accent-soft); border-color: var(--accent); }
+.thumb:hover { background: var(--field); }
+.cmp-bar { padding: 10px 12px; gap: 8px 12px; border-bottom: 1px solid var(--line); }
+.cmp-title { color: var(--ink); font-weight: 600; font-size: 13px; }
+.cmp-bar .btn.icon { width: 30px; height: 30px; }
+.cmp-bar .chk { font-size: 12.5px; color: var(--muted); }
+.cmp-count { color: var(--muted); }
+#splitter { background: var(--panel); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.pages-bar .btn.icon { width: 32px; padding: 0; }
 </style>
 
 </head>
 <body>
 <header class="bar">
-  <div class="brand"><b>Folio <i>PDF</i></b><span class="doc-name" id="docName">sample-sar-report.pdf</span></div>
+  <div class="brand">
+    <span class="mark" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4.5 2.5h7.2l3.8 3.8v10.2a1 1 0 01-1 1h-10a1 1 0 01-1-1v-13a1 1 0 011-1z" fill="currentColor"/><path d="M11.5 2.6v3.2a.8.8 0 00.8.8h3.1" fill="none" stroke="var(--mark-fold)" stroke-width="1.3"/><path d="M6.8 10.2h6.4M6.8 13h4.2" stroke="var(--mark-fold)" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+    <b class="wordmark">Folio</b>
+    <span class="doc-name" id="docName">sample-sar-report.pdf</span>
+  </div>
   <div class="viewctl" role="group" aria-label="Page and zoom">
     <button class="btn icon flat" id="pgPrev" title="Previous page" aria-label="Previous page"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
     <input id="pgNum" class="pgnum" type="text" inputmode="numeric" value="1" aria-label="Page number" title="Go to page">
@@ -426,7 +607,7 @@ label.num:focus-within { border-color: var(--accent); }
   <section id="compare" hidden aria-label="Review pane">
     <div class="cmp-bar">
       <div class="cmp-row">
-        <span class="cmp-title" id="cmpTitle">Original · before edits</span>
+        <span class="cmp-title" id="cmpTitle">Original, before edits</span>
         <button class="btn icon" id="cmpClose" title="Close the review pane" aria-label="Close the review pane"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="cmp-row">
@@ -4236,7 +4417,7 @@ async function openPdf(bytes, name, isSample) {
   rebuildAll();
   updateUndo();
 }
-function updateDocName() { const n = S.order.length; $('#docName').textContent = S.name + ' · ' + n + (n === 1 ? ' page' : ' pages'); }
+function updateDocName() { const n = S.order.length, d = $('#docName'); d.textContent = ''; d.title = S.name; d.append(el('span', 'fn', S.name), el('span', 'pc', n + (n === 1 ? ' page' : ' pages'))); }
 const orderSig = () => S.order.map(e => e.blank ? 'b' : e.sid + ':' + e.idx + ':' + (e.rot || 0)).join(',');
 const hasChanges = () => editCount() > 0 || orderSig() !== S.initialOrder;
 
@@ -4341,10 +4522,14 @@ async function buildPages() {
   const host = $('#pages'); host.textContent = '';
   for (const e of S.order) if (e.blank) await blankBase(e.blank.w, e.blank.h);
   if (S.sample) {
-    const bn = el('div', 'banner');
-    bn.append(el('span', null, 'This is a sample report to try Folio. It opens in View, for reading and copying text. Choose Edit on the left to change text, images and lines.'));
-    const b = el('button', 'btn', 'Open your PDF'); b.onclick = () => $('#fileIn').click(); bn.append(b);
-    host.append(bn);
+    if (!S.bannerClosed) {
+      const bn = el('div', 'banner');
+      bn.append(el('span', null, 'This is a sample report. Choose Edit to change it, or open your own PDF.'));
+      const b = el('button', 'btn primary sm', 'Open PDF'); b.onclick = () => $('#fileIn').click(); bn.append(b);
+      const x = el('button', 'btn icon flat sm'); x.title = 'Dismiss'; x.setAttribute('aria-label', 'Dismiss'); x.innerHTML = '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      x.onclick = () => { S.bannerClosed = true; bn.remove(); }; bn.append(x);
+      host.append(bn);
+    }
   }
   if (io) io.disconnect();
   io = new IntersectionObserver((ents) => ents.forEach(en => { if (!en.isIntersecting) return; const id = en.target.dataset.eid; renderPage(id); const D = S.dom[id], e = entry(id); if (D && D.ovDirty && S.rendered[id] && e) { D.ovDirty = false; drawOverlay(e); } }), { root: $('#desk'), rootMargin: '800px 0px' });
@@ -5069,7 +5254,7 @@ function inspBlock(body, title, s) {
   if (ed && (ed.move || ed.width != null)) acts.append(button('Reset position', '', () => { closeInline(true); setBlockEdit(e, b, { move: null, width: null }); S.sel = { ...s }; renderInspector(); }, 'Put the text back where it was, at its original width'));
   if (ed) acts.append(button('Revert', '', () => { closeInline(false); commit(x => { delete x.blocks[key]; }); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Click to type · drag to move · drag the side handles to change the width'));
+  body.append(el('p', 'hint', 'Click to type. Drag to move it, or drag a side handle to change the width.'));
 }
 function inspGroup(body, title, s) {
   const e = entry(s.eid); if (!e) return inspChanges(body, title);
@@ -5092,7 +5277,7 @@ function inspGroup(body, title, s) {
   acts.append(button('Delete all', 'danger', () => deleteItems(e, s.items)));
   acts.append(button('Clear selection', '', () => { S.sel = null; renderInspector(); refreshOverlays(); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Drag to move together · arrows nudge 1 pt (Shift 10 pt) · Shift-click to add or remove'));
+  body.append(el('p', 'hint', 'Drag any of them to move them together. Arrow keys nudge by 1 pt, or 10 pt with Shift. Shift-click adds or removes an item.'));
 }
 
 /* ---------------- lines, boxes and tables (vector graphics) ---------------- */
@@ -5306,7 +5491,7 @@ function inspGfx(body, title, s) {
   acts.append(button('Delete', 'danger', () => deleteItems(e, [s])));
   if (ed) acts.append(button('Revert', '', () => commit(x => { delete x.gfx[s.key]; })));
   body.append(acts);
-  body.append(el('p', 'hint', 'Drag to move · arrows nudge 1 pt (Shift 10 pt)'));
+  body.append(el('p', 'hint', 'Drag to move. Arrow keys nudge by 1 pt, or 10 pt with Shift.'));
 }
 
 /* ---------------- shell: page navigation, zoom, thumbnails, context menu ---------------- */
@@ -5541,6 +5726,11 @@ function styleControls(st, onChange, opts = {}) {
   return wrap;
 }
 function renderInspector() {
+  renderInspectorInner();
+  const t = $('#inspTitle'), m = /^(.*) · page (\d+)$/.exec(t.textContent);
+  if (m) { t.textContent = m[1]; t.append(el('span', 'sub', 'Page ' + m[2])); }
+}
+function renderInspectorInner() {
   const body = $('#inspBody'); body.textContent = '';
   if (matchMedia('(max-width: 860px)').matches) { const ins = $('#inspector'); const open = !!S.sel || (S.view === 'pages' && S.pick.size > 0); ins.classList.toggle('collapsed', !open); $('#sheetToggle').setAttribute('aria-expanded', open); }
   const s = S.sel, title = $('#inspTitle');
@@ -5624,7 +5814,7 @@ function inspImage(body, title, s) {
   a2.append(button('Delete', 'danger', () => commit(x => { x.images[s.key] = { key: s.key, eid: e.id, id: img.id, action: 'delete' }; })));
   if (ed) a2.append(button('Revert', '', () => commit(x => { delete x.images[s.key]; })));
   body.append(a2);
-  body.append(el('p', 'hint', 'Drag to move · drag a corner to resize (Shift: free proportions)'));
+  body.append(el('p', 'hint', 'Drag to move. Drag a corner to resize; hold Shift to change the proportions.'));
 }
 function rectFields(rect, onSet, bare) {
   const f = el('div', 'field'); if (!bare) f.append(el('span', 'lbl', 'Position and size (pt)'));
@@ -5645,7 +5835,7 @@ function inspAddText(body, title, s) {
   const acts = el('div', 'actions');
   acts.append(button('Delete', 'danger', () => { closeInline(false); commit(x => { x.addText = x.addText.filter(y => y.id !== t.id); }); S.sel = null; renderInspector(); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Click again to type · drag to move · Shift+Enter for a new line'));
+  body.append(el('p', 'hint', 'Click again to type, or drag to move. Shift+Enter starts a new line.'));
 }
 function inspAddImage(body, title, s) {
   const t = S.edits.addImages.find(x => x.id === s.key); if (!t) return inspChanges(body, title);
@@ -5654,7 +5844,7 @@ function inspAddImage(body, title, s) {
   const acts = el('div', 'actions');
   acts.append(button('Delete', 'danger', () => { commit(x => { x.addImages = x.addImages.filter(y => y.id !== t.id); }); S.sel = null; renderInspector(); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Drag to move · drag a corner to resize'));
+  body.append(el('p', 'hint', 'Drag to move. Drag a corner to resize.'));
 }
 function inspChanges(body, title) {
   title.textContent = 'Changes';
@@ -5676,11 +5866,16 @@ function inspChanges(body, title) {
   items.sort((a, b) => entryIndex(a.eid) - entryIndex(b.eid));
   const pagesChanged = orderSig() !== S.initialOrder;
   if (!items.length && !pagesChanged) {
-    body.append(el('p', 'empty', 'No changes yet.'));
-    const how = el('ol', 'how');
-    ['Click text to type in it. Drag text, images or lines to move them.', 'Drag across an empty area to select several things. Right-click for more.', 'Use Add text or Add image on the left, then click the page.', 'Organize reorders, rotates, inserts and splits pages.'].forEach(t => how.append(el('li', null, t)));
-    body.append(how);
-    body.append(el('p', 'hint', 'Everything happens in your browser. The PDF is never uploaded. Download saves a new copy.'));
+    const empty = el('div', 'empty-state');
+    empty.append(el('p', 'empty-title', 'No edits yet'), el('p', 'hint', 'Click any text to type in it, or drag text, images and lines to move them. Changes you make are listed here.'));
+    body.append(empty);
+    const keys = el('dl', 'keys');
+    const mac = /Mac|iP/.test(navigator.platform || navigator.userAgent), mod = mac ? '⌘' : 'Ctrl';
+    [['View', ['V']], ['Edit', ['E']], ['Add text', ['T']], ['Add image', ['I']], ['Organize pages', ['P']], ['Compare', ['R']], ['Select all on page', [mod, 'A']], ['Nudge selection', ['←', '→']], ['Undo', [mod, 'Z']], ['Download', [mod, 'S']]].forEach(([label, ks]) => {
+      const dt = el('dt', null, label), dd = el('dd'); ks.forEach(k => dd.append(el('kbd', null, k))); keys.append(dt, dd);
+    });
+    body.append(sec('Shortcuts', keys));
+    body.append(el('p', 'hint privacy', 'Files stay on this computer. Nothing is uploaded, and Download saves a new copy.'));
     return;
   }
   const list = el('ul', 'changes');
@@ -5767,7 +5962,7 @@ const ICON = {
 function ibtn(icon, label, fn, opts = {}) {
   const b = el('button', 'btn' + (opts.cls ? ' ' + opts.cls : ''));
   b.innerHTML = '<svg class="i" viewBox="0 0 24 24">' + ICON[icon] + '</svg>';
-  const span = el('span', opts.short ? 'lbl-sm' : null, label); b.append(span);
+  const span = el('span', opts.iconOnly ? 'sr' : opts.short ? 'lbl-sm' : null, label); b.append(span); if (opts.iconOnly) b.classList.add('icon');
   b.title = opts.title || label; b.onclick = fn; if (opts.disabled) b.disabled = true;
   return b;
 }
@@ -5775,12 +5970,12 @@ function picked() { return S.order.filter(e => S.pick.has(e.id)); }
 function buildPagesBar() {
   const bar = $('#pagesBar'); bar.textContent = '';
   const n = S.pick.size;
-  bar.append(el('span', 'count', n ? n + ' of ' + S.order.length + ' selected' : S.order.length + ' pages · click to select'));
+  bar.append(el('span', 'count', n ? n + ' of ' + S.order.length + ' selected' : S.order.length + (S.order.length === 1 ? ' page' : ' pages')));
   const none = !n;
-  bar.append(ibtn('rl', 'Rotate left', () => rotatePicked(-90), { disabled: none, short: true }));
-  bar.append(ibtn('rr', 'Rotate right', () => rotatePicked(90), { disabled: none, short: true }));
-  bar.append(ibtn('left', 'Move earlier', () => movePicked(-1), { disabled: none, short: true }));
-  bar.append(ibtn('right', 'Move later', () => movePicked(1), { disabled: none, short: true }));
+  bar.append(ibtn('rl', 'Rotate left', () => rotatePicked(-90), { disabled: none, iconOnly: true }));
+  bar.append(ibtn('rr', 'Rotate right', () => rotatePicked(90), { disabled: none, iconOnly: true }));
+  bar.append(ibtn('left', 'Move earlier', () => movePicked(-1), { disabled: none, iconOnly: true }));
+  bar.append(ibtn('right', 'Move later', () => movePicked(1), { disabled: none, iconOnly: true }));
   bar.append(ibtn('dup', 'Duplicate', duplicatePicked, { disabled: none, short: true }));
   bar.append(ibtn('del', 'Delete', deletePicked, { disabled: none || n === S.order.length, cls: 'danger', short: true, title: n === S.order.length ? 'A PDF needs at least one page' : 'Delete' }));
   bar.append(el('span', 'sep'));
@@ -6080,7 +6275,7 @@ function wordOptions() {
     box.append(el('p', null, 'Builds an editable .docx with real paragraphs, headings, lists and tables. Charts and scanned pages come across as pictures. Your edits are included.'));
     const chk = (id, label, on) => { const l = el('label', 'chk'); const c = el('input'); c.type = 'checkbox'; c.id = id; c.checked = on; l.append(c, el('span', null, label)); box.append(l); return c; };
     let pagesSel = null;
-    if (S.pick && S.pick.size && S.pick.size < S.order.length) pagesSel = chk('wSel', 'Only the ' + S.pick.size + ' selected pages', false);
+    if (S.pick && S.pick.size && S.pick.size < S.order.length) pagesSel = chk('wSel', S.pick.size === 1 ? 'Only the selected page' : 'Only the ' + S.pick.size + ' selected pages', false);
     const pb = chk('wPb', 'Start each PDF page on a new page in Word', true);
     const hf = chk('wHf', 'Turn repeated headers and footers into Word headers and footers', true);
     const acts = el('div', 'actions');
@@ -6266,7 +6461,7 @@ function buildCmp() {
     CMP.dom[j] = { div, cv, busy, dl };
     host.append(div); cio.observe(div);
   });
-  $('#cmpTitle').textContent = CMP.mode === 'original' ? 'Original · before edits' : CMP.mode === 'other' ? CMP.otherName : 'This document';
+  $('#cmpTitle').textContent = CMP.mode === 'original' ? 'Original, before edits' : CMP.mode === 'other' ? CMP.otherName : 'This document';
   drawDiffs();
 }
 async function renderCmp(j, force) {

@@ -1,5 +1,9 @@
 <header class="bar">
-  <div class="brand"><b>Folio <i>PDF</i></b><span class="doc-name" id="docName">sample-sar-report.pdf</span></div>
+  <div class="brand">
+    <span class="mark" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4.5 2.5h7.2l3.8 3.8v10.2a1 1 0 01-1 1h-10a1 1 0 01-1-1v-13a1 1 0 011-1z" fill="currentColor"/><path d="M11.5 2.6v3.2a.8.8 0 00.8.8h3.1" fill="none" stroke="var(--mark-fold)" stroke-width="1.3"/><path d="M6.8 10.2h6.4M6.8 13h4.2" stroke="var(--mark-fold)" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+    <b class="wordmark">Folio</b>
+    <span class="doc-name" id="docName">sample-sar-report.pdf</span>
+  </div>
   <div class="viewctl" role="group" aria-label="Page and zoom">
     <button class="btn icon flat" id="pgPrev" title="Previous page" aria-label="Previous page"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
     <input id="pgNum" class="pgnum" type="text" inputmode="numeric" value="1" aria-label="Page number" title="Go to page">
@@ -59,7 +63,7 @@
   <section id="compare" hidden aria-label="Review pane">
     <div class="cmp-bar">
       <div class="cmp-row">
-        <span class="cmp-title" id="cmpTitle">Original · before edits</span>
+        <span class="cmp-title" id="cmpTitle">Original, before edits</span>
         <button class="btn icon" id="cmpClose" title="Close the review pane" aria-label="Close the review pane"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="cmp-row">
@@ -251,7 +255,7 @@ async function openPdf(bytes, name, isSample) {
   rebuildAll();
   updateUndo();
 }
-function updateDocName() { const n = S.order.length; $('#docName').textContent = S.name + ' · ' + n + (n === 1 ? ' page' : ' pages'); }
+function updateDocName() { const n = S.order.length, d = $('#docName'); d.textContent = ''; d.title = S.name; d.append(el('span', 'fn', S.name), el('span', 'pc', n + (n === 1 ? ' page' : ' pages'))); }
 const orderSig = () => S.order.map(e => e.blank ? 'b' : e.sid + ':' + e.idx + ':' + (e.rot || 0)).join(',');
 const hasChanges = () => editCount() > 0 || orderSig() !== S.initialOrder;
 
@@ -356,10 +360,14 @@ async function buildPages() {
   const host = $('#pages'); host.textContent = '';
   for (const e of S.order) if (e.blank) await blankBase(e.blank.w, e.blank.h);
   if (S.sample) {
-    const bn = el('div', 'banner');
-    bn.append(el('span', null, 'This is a sample report to try Folio. It opens in View, for reading and copying text. Choose Edit on the left to change text, images and lines.'));
-    const b = el('button', 'btn', 'Open your PDF'); b.onclick = () => $('#fileIn').click(); bn.append(b);
-    host.append(bn);
+    if (!S.bannerClosed) {
+      const bn = el('div', 'banner');
+      bn.append(el('span', null, 'This is a sample report. Choose Edit to change it, or open your own PDF.'));
+      const b = el('button', 'btn primary sm', 'Open PDF'); b.onclick = () => $('#fileIn').click(); bn.append(b);
+      const x = el('button', 'btn icon flat sm'); x.title = 'Dismiss'; x.setAttribute('aria-label', 'Dismiss'); x.innerHTML = '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+      x.onclick = () => { S.bannerClosed = true; bn.remove(); }; bn.append(x);
+      host.append(bn);
+    }
   }
   if (io) io.disconnect();
   io = new IntersectionObserver((ents) => ents.forEach(en => { if (!en.isIntersecting) return; const id = en.target.dataset.eid; renderPage(id); const D = S.dom[id], e = entry(id); if (D && D.ovDirty && S.rendered[id] && e) { D.ovDirty = false; drawOverlay(e); } }), { root: $('#desk'), rootMargin: '800px 0px' });
@@ -1084,7 +1092,7 @@ function inspBlock(body, title, s) {
   if (ed && (ed.move || ed.width != null)) acts.append(button('Reset position', '', () => { closeInline(true); setBlockEdit(e, b, { move: null, width: null }); S.sel = { ...s }; renderInspector(); }, 'Put the text back where it was, at its original width'));
   if (ed) acts.append(button('Revert', '', () => { closeInline(false); commit(x => { delete x.blocks[key]; }); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Click to type · drag to move · drag the side handles to change the width'));
+  body.append(el('p', 'hint', 'Click to type. Drag to move it, or drag a side handle to change the width.'));
 }
 function inspGroup(body, title, s) {
   const e = entry(s.eid); if (!e) return inspChanges(body, title);
@@ -1107,7 +1115,7 @@ function inspGroup(body, title, s) {
   acts.append(button('Delete all', 'danger', () => deleteItems(e, s.items)));
   acts.append(button('Clear selection', '', () => { S.sel = null; renderInspector(); refreshOverlays(); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Drag to move together · arrows nudge 1 pt (Shift 10 pt) · Shift-click to add or remove'));
+  body.append(el('p', 'hint', 'Drag any of them to move them together. Arrow keys nudge by 1 pt, or 10 pt with Shift. Shift-click adds or removes an item.'));
 }
 
 /* ---------------- lines, boxes and tables (vector graphics) ---------------- */
@@ -1321,7 +1329,7 @@ function inspGfx(body, title, s) {
   acts.append(button('Delete', 'danger', () => deleteItems(e, [s])));
   if (ed) acts.append(button('Revert', '', () => commit(x => { delete x.gfx[s.key]; })));
   body.append(acts);
-  body.append(el('p', 'hint', 'Drag to move · arrows nudge 1 pt (Shift 10 pt)'));
+  body.append(el('p', 'hint', 'Drag to move. Arrow keys nudge by 1 pt, or 10 pt with Shift.'));
 }
 
 /* ---------------- shell: page navigation, zoom, thumbnails, context menu ---------------- */
@@ -1556,6 +1564,11 @@ function styleControls(st, onChange, opts = {}) {
   return wrap;
 }
 function renderInspector() {
+  renderInspectorInner();
+  const t = $('#inspTitle'), m = /^(.*) · page (\d+)$/.exec(t.textContent);
+  if (m) { t.textContent = m[1]; t.append(el('span', 'sub', 'Page ' + m[2])); }
+}
+function renderInspectorInner() {
   const body = $('#inspBody'); body.textContent = '';
   if (matchMedia('(max-width: 860px)').matches) { const ins = $('#inspector'); const open = !!S.sel || (S.view === 'pages' && S.pick.size > 0); ins.classList.toggle('collapsed', !open); $('#sheetToggle').setAttribute('aria-expanded', open); }
   const s = S.sel, title = $('#inspTitle');
@@ -1639,7 +1652,7 @@ function inspImage(body, title, s) {
   a2.append(button('Delete', 'danger', () => commit(x => { x.images[s.key] = { key: s.key, eid: e.id, id: img.id, action: 'delete' }; })));
   if (ed) a2.append(button('Revert', '', () => commit(x => { delete x.images[s.key]; })));
   body.append(a2);
-  body.append(el('p', 'hint', 'Drag to move · drag a corner to resize (Shift: free proportions)'));
+  body.append(el('p', 'hint', 'Drag to move. Drag a corner to resize; hold Shift to change the proportions.'));
 }
 function rectFields(rect, onSet, bare) {
   const f = el('div', 'field'); if (!bare) f.append(el('span', 'lbl', 'Position and size (pt)'));
@@ -1660,7 +1673,7 @@ function inspAddText(body, title, s) {
   const acts = el('div', 'actions');
   acts.append(button('Delete', 'danger', () => { closeInline(false); commit(x => { x.addText = x.addText.filter(y => y.id !== t.id); }); S.sel = null; renderInspector(); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Click again to type · drag to move · Shift+Enter for a new line'));
+  body.append(el('p', 'hint', 'Click again to type, or drag to move. Shift+Enter starts a new line.'));
 }
 function inspAddImage(body, title, s) {
   const t = S.edits.addImages.find(x => x.id === s.key); if (!t) return inspChanges(body, title);
@@ -1669,7 +1682,7 @@ function inspAddImage(body, title, s) {
   const acts = el('div', 'actions');
   acts.append(button('Delete', 'danger', () => { commit(x => { x.addImages = x.addImages.filter(y => y.id !== t.id); }); S.sel = null; renderInspector(); }));
   body.append(acts);
-  body.append(el('p', 'hint', 'Drag to move · drag a corner to resize'));
+  body.append(el('p', 'hint', 'Drag to move. Drag a corner to resize.'));
 }
 function inspChanges(body, title) {
   title.textContent = 'Changes';
@@ -1691,11 +1704,16 @@ function inspChanges(body, title) {
   items.sort((a, b) => entryIndex(a.eid) - entryIndex(b.eid));
   const pagesChanged = orderSig() !== S.initialOrder;
   if (!items.length && !pagesChanged) {
-    body.append(el('p', 'empty', 'No changes yet.'));
-    const how = el('ol', 'how');
-    ['Click text to type in it. Drag text, images or lines to move them.', 'Drag across an empty area to select several things. Right-click for more.', 'Use Add text or Add image on the left, then click the page.', 'Organize reorders, rotates, inserts and splits pages.'].forEach(t => how.append(el('li', null, t)));
-    body.append(how);
-    body.append(el('p', 'hint', 'Everything happens in your browser. The PDF is never uploaded. Download saves a new copy.'));
+    const empty = el('div', 'empty-state');
+    empty.append(el('p', 'empty-title', 'No edits yet'), el('p', 'hint', 'Click any text to type in it, or drag text, images and lines to move them. Changes you make are listed here.'));
+    body.append(empty);
+    const keys = el('dl', 'keys');
+    const mac = /Mac|iP/.test(navigator.platform || navigator.userAgent), mod = mac ? '⌘' : 'Ctrl';
+    [['View', ['V']], ['Edit', ['E']], ['Add text', ['T']], ['Add image', ['I']], ['Organize pages', ['P']], ['Compare', ['R']], ['Select all on page', [mod, 'A']], ['Nudge selection', ['←', '→']], ['Undo', [mod, 'Z']], ['Download', [mod, 'S']]].forEach(([label, ks]) => {
+      const dt = el('dt', null, label), dd = el('dd'); ks.forEach(k => dd.append(el('kbd', null, k))); keys.append(dt, dd);
+    });
+    body.append(sec('Shortcuts', keys));
+    body.append(el('p', 'hint privacy', 'Files stay on this computer. Nothing is uploaded, and Download saves a new copy.'));
     return;
   }
   const list = el('ul', 'changes');
@@ -1782,7 +1800,7 @@ const ICON = {
 function ibtn(icon, label, fn, opts = {}) {
   const b = el('button', 'btn' + (opts.cls ? ' ' + opts.cls : ''));
   b.innerHTML = '<svg class="i" viewBox="0 0 24 24">' + ICON[icon] + '</svg>';
-  const span = el('span', opts.short ? 'lbl-sm' : null, label); b.append(span);
+  const span = el('span', opts.iconOnly ? 'sr' : opts.short ? 'lbl-sm' : null, label); b.append(span); if (opts.iconOnly) b.classList.add('icon');
   b.title = opts.title || label; b.onclick = fn; if (opts.disabled) b.disabled = true;
   return b;
 }
@@ -1790,12 +1808,12 @@ function picked() { return S.order.filter(e => S.pick.has(e.id)); }
 function buildPagesBar() {
   const bar = $('#pagesBar'); bar.textContent = '';
   const n = S.pick.size;
-  bar.append(el('span', 'count', n ? n + ' of ' + S.order.length + ' selected' : S.order.length + ' pages · click to select'));
+  bar.append(el('span', 'count', n ? n + ' of ' + S.order.length + ' selected' : S.order.length + (S.order.length === 1 ? ' page' : ' pages')));
   const none = !n;
-  bar.append(ibtn('rl', 'Rotate left', () => rotatePicked(-90), { disabled: none, short: true }));
-  bar.append(ibtn('rr', 'Rotate right', () => rotatePicked(90), { disabled: none, short: true }));
-  bar.append(ibtn('left', 'Move earlier', () => movePicked(-1), { disabled: none, short: true }));
-  bar.append(ibtn('right', 'Move later', () => movePicked(1), { disabled: none, short: true }));
+  bar.append(ibtn('rl', 'Rotate left', () => rotatePicked(-90), { disabled: none, iconOnly: true }));
+  bar.append(ibtn('rr', 'Rotate right', () => rotatePicked(90), { disabled: none, iconOnly: true }));
+  bar.append(ibtn('left', 'Move earlier', () => movePicked(-1), { disabled: none, iconOnly: true }));
+  bar.append(ibtn('right', 'Move later', () => movePicked(1), { disabled: none, iconOnly: true }));
   bar.append(ibtn('dup', 'Duplicate', duplicatePicked, { disabled: none, short: true }));
   bar.append(ibtn('del', 'Delete', deletePicked, { disabled: none || n === S.order.length, cls: 'danger', short: true, title: n === S.order.length ? 'A PDF needs at least one page' : 'Delete' }));
   bar.append(el('span', 'sep'));
@@ -2095,7 +2113,7 @@ function wordOptions() {
     box.append(el('p', null, 'Builds an editable .docx with real paragraphs, headings, lists and tables. Charts and scanned pages come across as pictures. Your edits are included.'));
     const chk = (id, label, on) => { const l = el('label', 'chk'); const c = el('input'); c.type = 'checkbox'; c.id = id; c.checked = on; l.append(c, el('span', null, label)); box.append(l); return c; };
     let pagesSel = null;
-    if (S.pick && S.pick.size && S.pick.size < S.order.length) pagesSel = chk('wSel', 'Only the ' + S.pick.size + ' selected pages', false);
+    if (S.pick && S.pick.size && S.pick.size < S.order.length) pagesSel = chk('wSel', S.pick.size === 1 ? 'Only the selected page' : 'Only the ' + S.pick.size + ' selected pages', false);
     const pb = chk('wPb', 'Start each PDF page on a new page in Word', true);
     const hf = chk('wHf', 'Turn repeated headers and footers into Word headers and footers', true);
     const acts = el('div', 'actions');
@@ -2281,7 +2299,7 @@ function buildCmp() {
     CMP.dom[j] = { div, cv, busy, dl };
     host.append(div); cio.observe(div);
   });
-  $('#cmpTitle').textContent = CMP.mode === 'original' ? 'Original · before edits' : CMP.mode === 'other' ? CMP.otherName : 'This document';
+  $('#cmpTitle').textContent = CMP.mode === 'original' ? 'Original, before edits' : CMP.mode === 'other' ? CMP.otherName : 'This document';
   drawDiffs();
 }
 async function renderCmp(j, force) {

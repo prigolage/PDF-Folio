@@ -19,7 +19,7 @@ A PDF editor that runs entirely in the browser. Open a PDF, review it, edit it, 
 2. Under **Build and deployment**, set **Source** to *Deploy from a branch*, choose the **main** branch and the **/ (root)** folder, then **Save**.
 3. After a minute the site is live at `https://<your-user>.github.io/<repository-name>/`.
 
-The page needs internet access to load two libraries from public CDNs (pdf-lib from cdnjs and pdf.js from jsDelivr) and the IBM Plex fonts from Google Fonts. PDFs themselves never leave the browser.
+The page needs internet access to load two libraries from public CDNs (pdf-lib from cdnjs and pdf.js from jsDelivr) and the Instrument Sans interface font from Google Fonts (a bundled copy is used if Google Fonts is blocked). PDFs themselves never leave the browser.
 
 ## Making changes
 
@@ -45,5 +45,5 @@ sh build.sh
 
 ## Licenses
 
-- Fonts in `fonts/`: Noto Sans CJK (SIL Open Font License 1.1) and DejaVu Sans (Bitstream Vera license, DejaVu changes public domain). See `fonts/LICENSE-*.txt`.
+- Fonts in `fonts/`: Instrument Sans (interface) and Noto Sans CJK, both under the SIL Open Font License 1.1, and DejaVu Sans (Bitstream Vera license, DejaVu changes public domain). See `fonts/LICENSE-*.txt`.
 - [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT) and [pdf.js](https://github.com/mozilla/pdf.js) (Apache 2.0) are loaded from CDNs at run time.
