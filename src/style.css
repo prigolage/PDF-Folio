@@ -526,4 +526,20 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 #splitter { background: var(--panel); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pages-bar .btn.icon { width: 32px; padding: 0; }
+/* start screen, closing, theme */
+#start { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; }
+.start-card { width: min(460px, 100%); padding: 44px 36px 36px; text-align: center; border: 1.5px dashed var(--line-strong); border-radius: 18px; background: color-mix(in srgb, var(--panel) 70%, transparent);
+  display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.start-mark { width: 44px; height: 44px; color: var(--accent); margin-bottom: 6px; }
+.start-card h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+.start-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 34ch; text-wrap: balance; }
+.start-card .btn.lg { height: 40px; padding: 0 20px; font-size: 14px; margin-top: 12px; border-radius: 10px; }
+.start-keys { display: flex; gap: 4px; justify-content: center; margin-top: 2px !important; }
+body.no-doc #pages, body.no-doc #pagesView, body.no-doc #thumbs, body.no-doc #inspector, body.no-doc .viewctl, body.no-doc #splitGrip, body.no-doc #closeDoc, body.no-doc .doc-name { display: none !important; }
+.tool:disabled { opacity: .35; cursor: default; background: none; color: var(--muted); }
+#closeDoc { margin-left: -2px; color: var(--faint); }
+#closeDoc:hover { color: var(--ink); }
+.btn.primary.danger { background: var(--danger); border-color: var(--danger); color: #fff; box-shadow: none; }
+.btn.primary.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, black); border-color: transparent; }
+#drop { border-radius: 14px; inset: 10px; border-width: 2px; }
 </style>

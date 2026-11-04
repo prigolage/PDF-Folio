@@ -538,6 +538,22 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 #splitter { background: var(--panel); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pages-bar .btn.icon { width: 32px; padding: 0; }
+/* start screen, closing, theme */
+#start { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; }
+.start-card { width: min(460px, 100%); padding: 44px 36px 36px; text-align: center; border: 1.5px dashed var(--line-strong); border-radius: 18px; background: color-mix(in srgb, var(--panel) 70%, transparent);
+  display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.start-mark { width: 44px; height: 44px; color: var(--accent); margin-bottom: 6px; }
+.start-card h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+.start-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; max-width: 34ch; text-wrap: balance; }
+.start-card .btn.lg { height: 40px; padding: 0 20px; font-size: 14px; margin-top: 12px; border-radius: 10px; }
+.start-keys { display: flex; gap: 4px; justify-content: center; margin-top: 2px !important; }
+body.no-doc #pages, body.no-doc #pagesView, body.no-doc #thumbs, body.no-doc #inspector, body.no-doc .viewctl, body.no-doc #splitGrip, body.no-doc #closeDoc, body.no-doc .doc-name { display: none !important; }
+.tool:disabled { opacity: .35; cursor: default; background: none; color: var(--muted); }
+#closeDoc { margin-left: -2px; color: var(--faint); }
+#closeDoc:hover { color: var(--ink); }
+.btn.primary.danger { background: var(--danger); border-color: var(--danger); color: #fff; box-shadow: none; }
+.btn.primary.danger:hover:not(:disabled) { background: color-mix(in srgb, var(--danger) 88%, black); border-color: transparent; }
+#drop { border-radius: 14px; inset: 10px; border-width: 2px; }
 </style>
 
 </head>
@@ -546,7 +562,8 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
   <div class="brand">
     <span class="mark" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M4.5 2.5h7.2l3.8 3.8v10.2a1 1 0 01-1 1h-10a1 1 0 01-1-1v-13a1 1 0 011-1z" fill="currentColor"/><path d="M11.5 2.6v3.2a.8.8 0 00.8.8h3.1" fill="none" stroke="var(--mark-fold)" stroke-width="1.3"/><path d="M6.8 10.2h6.4M6.8 13h4.2" stroke="var(--mark-fold)" stroke-width="1.3" stroke-linecap="round"/></svg></span>
     <b class="wordmark">Folio</b>
-    <span class="doc-name" id="docName">sample-sar-report.pdf</span>
+    <span class="doc-name" id="docName"></span>
+    <button class="btn icon flat sm" id="closeDoc" title="Close this PDF" aria-label="Close this PDF"><svg class="i" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></button>
   </div>
   <div class="viewctl" role="group" aria-label="Page and zoom">
     <button class="btn icon flat" id="pgPrev" title="Previous page" aria-label="Previous page"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
@@ -568,6 +585,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
     <button class="btn icon flat" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 010 12h-3"/></svg></button>
     <button class="btn icon flat" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg class="i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg></button>
     <span class="sep"></span>
+    <button class="btn icon flat" id="theme" title="Switch to dark theme" aria-label="Switch to dark theme"></button>
     <button class="btn flat" id="open" title="Open a PDF (Ctrl+O)"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5a1 1 0 011-1h5l2 2h7a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1z"/></svg><span class="lbl-sm">Open</span></button>
     <button class="btn flat" id="word" title="Export an editable Word document"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M8.5 11l1.5 6 2-4.5 2 4.5 1.5-6"/></svg><span class="lbl-sm">Export to Word</span></button>
     <button class="btn primary" id="save" title="Download the edited PDF (Ctrl+S)" aria-label="Download"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg><span class="lbl-sm">Download</span></button>
@@ -590,6 +608,15 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
   <div id="leftCol">
   <div id="splitGrip" role="button" tabindex="0" aria-expanded="false" title="Drag down to split the view into two parts of the document" aria-label="Split view: drag down, or press Enter to split in half"></div>
   <main id="desk" aria-label="Document">
+    <div id="start" hidden>
+      <div class="start-card">
+        <svg class="start-mark" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 2.5h7.2l3.8 3.8v10.2a1 1 0 01-1 1h-10a1 1 0 01-1-1v-13a1 1 0 011-1z" fill="currentColor"/><path d="M11.5 2.6v3.2a.8.8 0 00.8.8h3.1" fill="none" stroke="var(--mark-fold)" stroke-width="1.1"/><path d="M6.8 10.2h6.4M6.8 13h4.2" stroke="var(--mark-fold)" stroke-width="1.1" stroke-linecap="round"/></svg>
+        <h1>Open a PDF</h1>
+        <p>Drop a file anywhere in this window, or choose one. It stays on this computer and is never uploaded.</p>
+        <button class="btn primary lg" id="startOpen">Choose PDF</button>
+        <p class="start-keys"><kbd id="startMod">Ctrl</kbd><kbd>O</kbd></p>
+      </div>
+    </div>
     <div id="pages"></div>
     <div id="pagesView" hidden>
       <div class="pages-bar" id="pagesBar"></div>
@@ -4273,7 +4300,6 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 })(typeof self !== 'undefined' ? self : this);
 
 </script>
-<script>window.__SAMPLE_PDF__ = "JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiA0IDAgUiAvRjMgNSAwIFIgL0Y0IDYgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0JpdHNQZXJDb21wb25lbnQgOCAvQ29sb3JTcGFjZSAvRGV2aWNlUkdCIC9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvSGVpZ2h0IDk2IC9MZW5ndGggMTg3MCAvU3VidHlwZSAvSW1hZ2UgCiAgL1R5cGUgL1hPYmplY3QgL1dpZHRoIDI0MAo+PgpzdHJlYW0KR2IiL2xzKGRtIio2OCdacysjcFBUOzk9PTNAZyFSTWpbZ1I+QWolTUNOSnA1OU9WL10wW1w9MlY3IjYyP1IwMEgpPygxNSNYdCxbJThFXVVFb1A1YG1ScmFfUnBuZ0VLRi1zYjpIb2hEWVdbM3IzVUFjaHJBZilqKFtpSTZTcFIqbVNFSU9sNCp1RzFTWDRZTCpdJTo/bkhaUVVucTQqJChdXyQ2SWFBZkEiNXBXLyYlV3JvIThKQGM2ISRHX0pEMjg0a19iL3NFKk1CLj5uSmRrRE4iRmMuaj4yNUQzNW9eN0RvMjkvYjRPc0xfcC0kNz1OU3UmSGd0ImE6R2orQEs+MSFxKkEoTSUiUihWNU5tdVwhSDs5KCNALm9yISxkX21USVYyal5obzJVRkBGK0pcMVI5KFkpIW5wW21iYm0nYkxRK1tgQXVqLCU6US0oQVU2dDZrIlYjLCFZOktMXVInYE9adTJXI0VMLyNCVzsyaE8pRl9QQkFzLEZYbWdQc2AjYDU4aVV1OGclPUlvZHBcQyJ0YVVKbyhqIkFGPmFWYlAuayFtRi5PUGtZQWxkNGZUIWAvbWwyPGYyTSE+LlRUUTBFQC1pL3U1M1YuM1xDaVc+SXNxYCMuOHAnWFk6UE9sQ1I3LGIkO2ZPXTRkVTRsU3BbZFwxREY/YUg/bFY2YSpmMmAxcTJ1NnU5YUJNUD88TiI8TkR1XUAxO3RXajZyRHJzVjpuazxAU1BDXTM1NWtEcCpJJEU4Z1tCWFVcKW8/ZERnWyIkRTA3I2EyVT5gcHMuOVwlWHQtTk5tZXVCX1Y6PEIkJidbNE1FJzQnP25CaCRlaWxeITo3QjtGaXFfJWA5TVQnYyc8YjZHMUZTKk5cLm9iP1dGU1xbbDtRQEM0blNJWlRxSSVTRVFJZz5oSXMwYi5pMmdMRC0hS3Q4LTwkIy0kRWImVGtqJzxdUGEjZiQsLS8zJSo9aVtfP1gyZ1xjW1k7XGtdXEtsP1QoTDZrZzoyJlhPLD5gamFxJG5fOEcvSmZXbjNuUkAoTFBYQkBWQUkoPnEyJ3FDUUNdTipeOHJhT2QpZiU3YyYvI0RbRnMsZ0lcUzk4TkQsKlUsMlwxQTZqOjt1NTMlWi1gQW9ZbyVTPHBMXGQoSSxNL2NnYyNSai5XNj1IaE1vX1Baaz50Q2lYUG9UQ3E8XjZnX01bLiZEKjJtLz9jT0JAdUNNbWRIPnNDTTJtUWV0SWBebzZHc1A6WjlrcGZxKjh1cVZbOGJbbSc6TEBVc1JTczdqSS4vUGQuSTUvIXVlU3FlQ1BFTyZlQTIqViNrWmQ1YyRPIVQ7NVwuTkJpNFEhO0VmNmguP29SRUwqSzBjaG0xLURwLVtpZWdycWptSklmLzYlNDttQkgsKXQoJyIpazk1c1RjX1JPQ002SjYzOCVURF4tc0s5OjhhXjU+SFFkRGhLPmlAYSc2QV9gS2RpQD0wSD47WjlFMXA1RWJeNyRxJ0BEb0JFRjwoVyxvOSQuRl5FUXJCN0UtXzQiczxyQDhUNm4tWzVTMyNHTm0uP147OXM4SGRtblFSMz5hZCZMYz9kN2NVUiRuQ0kuNis4UUAsOTRCVmo0ZGxkbzQ+LztudFRAWmA0KU9ELippYlprLD5eWS9VKGExaExobUkwO0s3YFZZYTliX0wkaFksSlk3dFQmJz00UmxcMTlAPWBHXFEqRUttQiFoIyYhWFQ2L0lkIU1KQVwmXUE8aSkzbykwbVtJIjszWGo4VCRYdFFvW21sYy5EcU9OTDRaOkk8WkA7WUMnciglU3BhPkMhIzRjKDkmK3BqWmxbQyVDUCw/Wjk4ZSQtOlMsXnEicyxcLmhFZXQwZ0BBPERPPV9xTmgucGxSK2pPRC5nJEhQL1BEbFw8U1ZUQkAtMHBJNUgmWWRYNk5JY1RldFQ3Rj5XLWgxXVlFTTFQSkduL2lRJVopNFtnPWhiY25SW21lTmJgKFJNKFJNSW1Uc04lND8pZUdYK1pGRkBGXjJkXVw+JG8laT1QWCc+Kj4kQGtNXFdMci9camFvPSJkWDpmbVdyO1koRyNaKE5yMjxmMk1ANygkRElnU0pNYVQ2ayonbkthZyIrTDdtRUs9KjUqO0pJaHIoNE9cbjpCS1M5cTowMyNvY3E/NCorakFCMyl0N0w2JEMmREsrc15DYUFPYVdXV0p0UDNCP3FULTk9IWdfVF1PPSUhSUlnRUpsR01NTTpQPk4/I3AmTVg5J011OTR1K3BQaSJPV1NbNl91UjshbnE0KiQoXV8kNklhQWZBIjVwVy8mJVdybyE4SkBjNiEkR19KRDI4NGtfYi9zRSpNQi4+bkpka0ROIkZjLmo+MjVEMzVvXjdEbzI5L2I0T3NMX3AtJDc9TlN1JkhndCJhOkdqK0BLPjEhcSpBKE0lIlIoVjVObXVcIUg7OSgjQC5vciEsZF9tVElWMmpeaG8yVUZARix1SWZWTGgtWC1+PmVuZHN0cmVhbQplbmRvYmoKNCAwIG9iago8PAovQmFzZUZvbnQgL0hlbHZldGljYS1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMiAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1Sb21hbiAvRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZyAvTmFtZSAvRjMgL1N1YnR5cGUgL1R5cGUxIC9UeXBlIC9Gb250Cj4+CmVuZG9iago2IDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLU9ibGlxdWUgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0Y0IC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNyAwIG9iago8PAovQ29udGVudHMgMTEgMCBSIC9NZWRpYUJveCBbIDAgMCA2MTIgNzkyIF0gL1BhcmVudCAxMCAwIFIgL1Jlc291cmNlcyA8PAovRm9udCAxIDAgUiAvUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXSAvWE9iamVjdCA8PAovRm9ybVhvYi5iYTdmNDE3MWEzYWQ0N2ExZTE0YWZiNjc2NTZiNDBkMiAzIDAgUgo+Pgo+PiAvUm90YXRlIDAgL1RyYW5zIDw8Cgo+PiAKICAvVHlwZSAvUGFnZQo+PgplbmRvYmoKOCAwIG9iago8PAovUGFnZU1vZGUgL1VzZU5vbmUgL1BhZ2VzIDEwIDAgUiAvVHlwZSAvQ2F0YWxvZwo+PgplbmRvYmoKOSAwIG9iago8PAovQXV0aG9yIChhbm9ueW1vdXMpIC9DcmVhdGlvbkRhdGUgKEQ6MjAyNjExMDMxMTE1NTUtMDgnMDAnKSAvQ3JlYXRvciAoYW5vbnltb3VzKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAyNjExMDMxMTE1NTUtMDgnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIFwob3BlbnNvdXJjZVwpKSAKICAvU3ViamVjdCAodW5zcGVjaWZpZWQpIC9UaXRsZSAoU2FtcGxlIFNBUiBUZXN0IFJlcG9ydCkgL1RyYXBwZWQgL0ZhbHNlCj4+CmVuZG9iagoxMCAwIG9iago8PAovQ291bnQgMSAvS2lkcyBbIDcgMCBSIF0gL1R5cGUgL1BhZ2VzCj4+CmVuZG9iagoxMSAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCAxMjM3Cj4+CnN0cmVhbQpHYXQ9KjltPlNUJ10mQDJtVywwUCNZQz5zQWsqSWlQPmQ0M2BpJHBmMk1zKiVYZytqQlAwaFoiaF1sODgtM11SPCFKQFREXUMvPltsN2wrMzBfOlxiSl1lMUsmSGgmYUFtZzJyLFwnNTZuI21kUldCa2VEWSguPS1VcyVWJjw3VDBJbEIrMiRJalVRL1VhJVxTOTtcKTxaVWBAOT5qa1A6TjhxTTdyUk5kayoyK09SLGQ/QEpFUDkvLzVRaEhYKUxyKltMJnBTTT9HTlgvXyZPKTYhXj5kPFFNOy5hR0lNUkRhWG9nTjBeX19sRU0lVDpvZExYUjFRanRhcjFeYXIpLWZYYUpCcW4hVFV0XiRZPV00U0l0MFVAPSgldD1AIWcnJyU2WCdqK08nQWRYMXBnVjtwVDQtYWArOGRpUy1dZGBSQUIyU18zMFw3ZUBzYVs7OiEoPUtTVTdgSyplblxRZm03YTYwJnVSaVMwPzIuYmRjSF9vOW8mJjZkLjhwcUBwXDY5Vm0uYS5PXGxyc3ReZGlIUStXbllMNj89cF1KOk8vcllOOCc8KEFjLicuMnNlXDk9JysnOTRcTzdpQFdMQiMmWzFBPVEvUzJgWlVYbkttTls9MmEwOlErWSZKSDFRNis1YkxDYDsycU5IOisqIzVWaDMiamNLYUNNPz9aXW5RLTo6XHRoWypNKEcndDFsZUYsaHElbSNHczZiPXBMP0grR1FLOWJeJCgvZUBmSzE/U110ZEZIJjFrQWE4N140KCwoXWIvImM/VT4kKktZW10yRGJdSlVALCc7am8oYlRnWlNrT1QxLypKbklSYVZjSmBIO3RKLTxsKWlpZyZEJjVcQjU+VzQ/NCJmPUFyWj4kVGhPW1tWczVDLUk0Yys2cjJtPiRDO0xWL2pfRnI5PzE9NEIzOmsxVi1MI0NrJVZIR24rWWAlKyUuQXBlaHBbcTRCTSpSO1IzJ2lcKFBZYk9LWS5NYi1BLCRdSE5NLzRgKU9XdSE0X0BGTUVcQDomUE1RVjgqW2NwIlhGbnJhQl00KURKb19mRkEvYWZ1OCRfZW1cYSMsbkQ9MlYlVDxgVCUyNkFtZDY0SGQ5UUJROXBibVFnXEBaPEVzODVialtTPG0vLzNCVDtZazhBIXIzNElqNCtmNUgvMiY4SkolY2tBX3RMX0lBZzlyOEAnZ1U8ZilnOW1VVmBtIStZYVBrVjZLSDReMjpycGpkS3NZJGRNSGkjYGNKJk5WTCFqOlg2RlRzST1dSnQ3OGxhJTlYKG8kcF0iPDY8RmRaOUE+Pz03ZTErOm8rakNnW3NobV9GblhHYU48PmNpa21Xajo4aiYoWCNjRjNDPVk5cmlgUzQsSGJoK1EwSFAiVXRXRl87OTlSWjxuWDJEXzhQKzJkXk1FJW4/cHFba1puK3BSQ0NHSic5WTkzLmtfPUpdK0A3YTM+RS44LmBKJWJVdVJsVU4ycm05JUN0Q2BnMCVoP0t1Z1pGJUonbjFsNGdAQVkuJEdoZG44IkRuLSZzSk8kN0VHUEJAOzdScW0qM2ReKW0rZmomYTtPK0BFIilZYG5iSVE6U1EvdWpfJytCZCNWLUwjKVpIVCEpMlo2YC5iam5eVCZtPVNpLCdzN2pBISFXaH4+ZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgMTIKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDYxIDAwMDAwIG4gCjAwMDAwMDAxMjIgMDAwMDAgbiAKMDAwMDAwMDIyOSAwMDAwMCBuIAowMDAwMDAyMjg5IDAwMDAwIG4gCjAwMDAwMDI0MDEgMDAwMDAgbiAKMDAwMDAwMjUxMCAwMDAwMCBuIAowMDAwMDAyNjI1IDAwMDAwIG4gCjAwMDAwMDI4ODMgMDAwMDAgbiAKMDAwMDAwMjk1MiAwMDAwMCBuIAowMDAwMDAzMjI3IDAwMDAwIG4gCjAwMDAwMDMyODcgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8N2I3M2YyOTA4NDc4YWFjYjY3N2RmMzZjODliMDExYjM+PDdiNzNmMjkwODQ3OGFhY2I2NzdkZjM2Yzg5YjAxMWIzPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyA5IDAgUgovUm9vdCA4IDAgUgovU2l6ZSAxMgo+PgpzdGFydHhyZWYKNDYxNgolJUVPRgo=";</script>
 <script type="module">
 const PDFJS = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs';
 const PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
@@ -4305,15 +4331,20 @@ const entry = (eid) => S.order.find(e => e.id === eid);
 const entryIndex = (eid) => S.order.findIndex(e => e.id === eid);
 
 /* ---------------- pdf.js ---------------- */
-async function ensurePdfjs() {
-  if (pdfjs) return pdfjs;
-  status('Loading viewer…');
-  pdfjs = await import(PDFJS);
-  // run pdf.js in the page itself: cross-origin worker scripts are not allowed here
-  globalThis.pdfjsWorker = await import(PDFJS_WORKER);
-  pdfjs.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
-  status('');
-  return pdfjs;
+let pdfjsLoading = null;
+function ensurePdfjs() {
+  // one shared load, so opening a file while the viewer is still loading waits for all of it
+  if (!pdfjsLoading) pdfjsLoading = (async () => {
+    status('Loading viewer…');
+    const lib = await import(PDFJS);
+    // run pdf.js in the page itself: cross-origin worker scripts are not allowed here
+    globalThis.pdfjsWorker = await import(PDFJS_WORKER);
+    lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+    pdfjs = lib;
+    status('');
+    return lib;
+  })().catch((err) => { pdfjsLoading = null; status(''); throw err; });
+  return pdfjsLoading;
 }
 const openView = (bytes) => pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, useSystemFonts: true }).promise;
 
@@ -4416,6 +4447,7 @@ async function openPdf(bytes, name, isSample) {
   if (CMP.on) setCmpSource(CMP.mode === 'other' ? 'other' : CMP.mode, null, true);
   rebuildAll();
   updateUndo();
+  updateChrome();
 }
 function updateDocName() { const n = S.order.length, d = $('#docName'); d.textContent = ''; d.title = S.name; d.append(el('span', 'fn', S.name), el('span', 'pc', n + (n === 1 ? ' page' : ' pages'))); }
 const orderSig = () => S.order.map(e => e.blank ? 'b' : e.sid + ':' + e.idx + ':' + (e.rot || 0)).join(',');
@@ -6371,6 +6403,7 @@ window.addEventListener('keydown', (ev) => {
   if (!typing && !mod && ev.key === 'Enter' && S.view === 'edit' && S.sel && S.sel.kind === 'block') { const h = blockByKey(S.sel.key); if (h) { ev.preventDefault(); openInlineBlock(h.e, h.b); return; } }
   if (mod && ev.key.toLowerCase() === 'a' && S.view === 'pages' && !typing) { ev.preventDefault(); S.pick = new Set(S.order.map(e => e.id)); buildGrid(); renderInspector(); return; }
   if (typing || mod || ev.altKey) return;
+  if (!S.primary) return;
   if (ev.key === 'Escape') { if (S.view === 'pages') { S.pick = new Set(); buildGrid(); renderInspector(); return; } if (S.mode !== 'view') setMode('edit'); S.sel = null; renderInspector(); refreshOverlays(); }
   if (S.view === 'edit' && /^Arrow/.test(ev.key) && selItems().length) { if (nudge(ev)) { ev.preventDefault(); return; } }
   if (ev.key === 'Delete' || ev.key === 'Backspace') {
@@ -6805,14 +6838,58 @@ $('#lowerClose').onclick = () => closeSplit(false);
   });
 })();
 
-/* ---------------- start with the sample ---------------- */
+/* ---------------- theme ---------------- */
+const THEME_ICON = {
+  moon: '<svg class="i" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"/></svg>',
+  sun: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>'
+};
+const effectiveTheme = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+function applyTheme(t) {
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  const dark = effectiveTheme() === 'dark', b = $('#theme');
+  b.innerHTML = dark ? THEME_ICON.sun : THEME_ICON.moon;
+  b.title = dark ? 'Switch to light theme' : 'Switch to dark theme'; b.setAttribute('aria-label', b.title);
+}
+$('#theme').onclick = () => { const t = effectiveTheme() === 'dark' ? 'light' : 'dark'; applyTheme(t); try { localStorage.setItem('folio.theme', t); } catch (err) {} };
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(document.documentElement.dataset.theme));
+try { applyTheme(localStorage.getItem('folio.theme')); } catch (err) { applyTheme(null); }
+
+/* ---------------- no document: start screen ---------------- */
+function updateChrome() {
+  const has = !!S.primary;
+  document.body.classList.toggle('no-doc', !has);
+  $('#start').hidden = has;
+  ['#save', '#word', '#closeDoc', '#tView', '#tEdit', '#tText', '#tImg', '#tPages', '#tCompare', '#tThumbs', '#pgPrev', '#pgNext', '#pgNum', '#zIn', '#zOut', '#zSel'].forEach(id => { const n = $(id); if (n) n.disabled = !has; });
+  if (has && S.view === 'pages') { $('#zIn').disabled = $('#zOut').disabled = $('#zSel').disabled = true; }
+  if (has) updatePageNav(); else { $('#pgNum').value = ''; $('#pgCount').textContent = ''; }
+}
+async function closePdf() {
+  if (!S.primary) return;
+  if (hasChanges()) {
+    const ok = await modal({ title: 'Close ' + S.name + '?', text: 'Your changes haven\'t been downloaded and will be lost.', buttons: [{ label: 'Cancel', value: false }, { label: 'Close without saving', value: true, primary: true, danger: true }] });
+    if (!ok) return;
+  }
+  closeInline(false); closeMenu();
+  if (CMP.on) await setCompare(false);
+  if (SPL.on) closeSplit(false);
+  if (S.view !== 'edit') setView('edit');
+  Object.values(S.sources).forEach(s => { try { s.view.destroy(); } catch (e) {} });
+  if (S.preview) { try { S.preview.destroy(); } catch (e) {} }
+  Object.assign(S, { sources: {}, primary: null, name: '', order: [], sel: null, undo: [], redo: [], rendered: {}, files: {}, preview: null, previewIndex: {}, previewSig: {}, lastReport: null, pick: new Set(), initialOrder: '', userZoomed: false, zoomMode: null });
+  S.edits = { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [] };
+  CMP.leftCache = {};
+  $('#docName').textContent = ''; $('#fileIn').value = '';
+  await buildPages();
+  updateUndo(); renderInspector(); updateChrome();
+  $('#startOpen').focus();
+}
+$('#closeDoc').onclick = closePdf;
+$('#startOpen').onclick = () => { $('#fileIn').value = ''; $('#fileIn').click(); };
+if (/Mac|iP/.test(navigator.platform || navigator.userAgent)) $('#startMod').textContent = '⌘';
+
 renderInspector();
-(async () => {
-  try {
-    const bin = atob(window.__SAMPLE_PDF__); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-    await openPdf(u, 'sample-sar-report.pdf', true);
-  } catch (err) { console.error(err); toast('The viewer could not load. Check your connection and reload.'); }
-})();
+updateChrome();
+ensurePdfjs().catch((err) => { console.error(err); status(''); toast('The viewer could not load. Check your connection and reload.'); });
 window.__folio = S;
 </script>
 

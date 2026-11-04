@@ -23,7 +23,6 @@ for k, f in {'/*__ENGINE__*/': 'engine.js', '/*__DOCX__*/': 'docx.js', '/*__CRYP
     src = open('src/' + f).read()
     assert '</script' not in src.lower(), f
     body = body.replace(k, src)
-body = body.replace('/*__SAMPLE__*/', base64.b64encode(open('src/fixtures/sample.pdf', 'rb').read()).decode())
 open('index.html', 'w').write(head + style + '\n</head>\n<body>\n' + body + '\n</body>\n</html>\n')
 print('index.html built')
 PY
