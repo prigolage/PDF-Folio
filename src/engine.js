@@ -1599,6 +1599,95 @@
     if (extra) page.node.addContentStream(doc.context.register(doc.context.flateStream(extra)));
   }
 
+  /* ---------- watermark ---------- */
+  // "1-3, 5, 8-" style page ranges, 1-based; empty means every page
+  function pageSet(spec, n) {
+    const out = new Set();
+    const t = String(spec || '').trim();
+    if (!t) { for (let i = 0; i < n; i++) out.add(i); return out; }
+    for (const part of t.split(/[,;\s]+/)) {
+      const m = /^(\d*)\s*-\s*(\d*)$/.exec(part);
+      if (m) { const a = m[1] ? +m[1] : 1, b = m[2] ? +m[2] : n; for (let i = Math.max(1, a); i <= Math.min(n, b); i++) out.add(i - 1); }
+      else if (/^\d+$/.test(part) && +part >= 1 && +part <= n) out.add(+part - 1);
+    }
+    return out;
+  }
+  /*
+   * Where the watermark text goes on a page. box: the visible page box in user space; rot: the
+   * page's /Rotate; wm.angle is the slant the reader sees (counter-clockwise). widthAt1: text width
+   * at size 1. Returns baseline origins in user space with the drawing angle.
+   */
+  function watermarkPlacements(box, rot, wm, widthAt1) {
+    const r = ((rot % 360) + 360) % 360;
+    const view = r % 180 ? { w: box.height, h: box.width } : { w: box.width, h: box.height };
+    const th = ((wm.angle || 0) + r) * Math.PI / 180, ta = (wm.angle || 0) * Math.PI / 180;
+    const capH = 0.72;
+    let size = wm.size || 48;
+    if (wm.fit !== false && (wm.layout || 'center') === 'center') {
+      const c = Math.abs(Math.cos(ta)), sn = Math.abs(Math.sin(ta));
+      size = Math.min(0.82 * view.w / (widthAt1 * c + capH * sn || 1), 0.82 * view.h / (widthAt1 * sn + capH * c || 1));
+      size = Math.max(6, Math.min(size, 400));
+    }
+    const w = widthAt1 * size, h = capH * size;
+    const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+    const dx = Math.cos(th), dy = Math.sin(th);
+    const origin = (x, y) => ({ x: x - dx * w / 2 + dy * h / 2, y: y - dy * w / 2 - dx * h / 2 });
+    const out = [];
+    if ((wm.layout || 'center') === 'tile') {
+      const stepX = w + size * 2.2, stepY = h + size * 3.2;
+      const R = Math.hypot(box.width, box.height) / 2 + Math.max(w, h);
+      // a grid in the text's own direction, kept to the page
+      for (let j = -Math.ceil(R / stepY), row = 0; j <= Math.ceil(R / stepY); j++, row++) {
+        for (let i = -Math.ceil(R / stepX) - 1; i <= Math.ceil(R / stepX) + 1; i++) {
+          const u = i * stepX + (row % 2 ? stepX / 2 : 0), v = j * stepY;
+          const x = cx + u * dx - v * dy, y = cy + u * dy + v * dx;
+          if (x < box.x - w / 2 || x > box.x + box.width + w / 2 || y < box.y - w / 2 || y > box.y + box.height + w / 2) continue;
+          out.push({ ...origin(x, y), angle: th, size });
+        }
+      }
+    } else out.push({ ...origin(cx, cy), angle: th, size });
+    return out;
+  }
+  async function applyWatermark(L, doc, page, wm, ctx) {
+    const text = String(wm.text).replace(/\s+/g, ' ').trim();
+    if (!text) return;
+    const box = page.getCropBox ? page.getCropBox() : page.getMediaBox();
+    const rot = page.getRotation().angle || 0;
+    const color = wm.color || [0.75, 0.1, 0.1];
+    const uniNeeded = ctx.uni.needed(text);
+    let widthAt1, emitText;
+    if (uniNeeded) {
+      const prep = await ctx.uni.prepare(text, !!wm.bold);
+      prep.missing.forEach(ch => ctx.report.missingChars.add(ch));
+      widthAt1 = ctx.uni.widthOf(prep, 1);
+      emitText = (pl) => ctx.uni.ops(page, prep, { x: pl.x, y: pl.y, size: pl.size, color, angle: pl.angle });
+    } else {
+      const f = await ctx.font(stdName(L, wm.family || 'Helvetica', wm.bold !== false, !!wm.italic));
+      widthAt1 = f.widthOfTextAtSize(text, 1);
+      const fname = page.node.newFontDictionary('Wm', f.ref).decodeText();
+      const hex = f.encodeText(text).toString();
+      emitText = (pl) => { const c = Math.cos(pl.angle), sn = Math.sin(pl.angle); return 'BT /' + fname + ' ' + num(pl.size) + ' Tf ' + [c, sn, -sn, c, pl.x, pl.y].map(num).join(' ') + ' Tm ' + hex + ' Tj ET\n'; };
+    }
+    const op = Math.max(0.03, Math.min(1, wm.opacity == null ? 0.3 : wm.opacity));
+    const gs = doc.context.register(doc.context.obj({ Type: 'ExtGState', ca: op, CA: op }));
+    const gsName = page.node.newExtGState('WmGS', gs).decodeText();
+    let ops = 'q /' + gsName + ' gs ' + color.map(num).join(' ') + ' rg\n';
+    for (const pl of watermarkPlacements(box, rot, wm, widthAt1)) ops += emitText(pl);
+    ops += 'Q\n';
+    const stream = doc.context.register(doc.context.flateStream(ops));
+    const list = contentRefs(L, page);
+    if (wm.layer === 'behind') {
+      page.node.set(L.PDFName.of('Contents'), doc.context.obj([stream, ...list]));
+    } else {
+      // keep whatever state the page leaves behind from reaching the watermark
+      let depth = 0;
+      try { for (const o of parseOps(pageContent(L, doc, page))) { if (o.op === 'q') depth++; else if (o.op === 'Q') depth = Math.max(0, depth - 1); } } catch (e) { depth = 0; }
+      const pre = doc.context.register(doc.context.flateStream('q\n'));
+      const post = doc.context.register(doc.context.flateStream('Q\n'.repeat(depth + 1)));
+      page.node.set(L.PDFName.of('Contents'), doc.context.obj([pre, ...list, post, stream]));
+    }
+  }
+
   function newContext(L, doc, opts) {
     const fontObjs = {};
     return {
@@ -1692,6 +1781,11 @@
     const ctx = newContext(L, doc, opts);
     const edits = input.edits || [];
     for (let i = 0; i < pages.length; i++) if (hasEdits(edits[i])) await applyPageEdits(L, doc, pages[i], i, edits[i], ctx);
+    if (opts.watermark && opts.watermark.text) {
+      const on = pageSet(opts.watermark.pages, pages.length);
+      for (let i = 0; i < pages.length; i++) if (on.has(i)) await applyWatermark(L, doc, pages[i], opts.watermark, ctx);
+      ctx.report.watermarked = on.size;
+    }
     ctx.uni.finish();
     if (opts.gc !== false) ctx.report.garbage = collectGarbage(L, doc);
     const bytes = await doc.save({ useObjectStreams: false });
@@ -1724,7 +1818,7 @@
   }
 
   const api = {
-    buildPreview,
+    buildPreview, watermarkPlacements, pageSet,
     tokenize, parseOps, analyzePage, makeFontCache, buildBlocks, planBlockEdit, groupGraphics, graphicSig, glyphsInBox, boxText, planTextEdit, rewriteContent, exportPdf, buildDocument, collectGarbage, measureStd,
     standardFontFor, familyOf, styleOf, styleFromRun, unsupportedChars, stdName,
     bytesToLatin1, latin1ToBytes, mul, apply, inv, bboxOf

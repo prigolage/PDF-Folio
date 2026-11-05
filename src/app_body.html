@@ -39,6 +39,8 @@
     <button class="tool" id="tEdit" aria-pressed="false" title="Edit text, images and lines (E)"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg><span>Edit</span></button>
     <button class="tool" id="tText" aria-pressed="false" title="Add a text box (T)"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M8 9h8M12 9v7"/></svg><span>Add text</span></button>
     <button class="tool" id="tImg" aria-pressed="false" title="Add an image (I)"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg><span>Add image</span></button>
+    <button class="tool" id="tWm" aria-pressed="false" title="Add a watermark (W)"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M9 16.5l6-7" stroke-dasharray="2 2"/><path d="M14 3v4h4"/></svg><span>Watermark</span></button>
+    <button class="tool" id="tProtect" aria-pressed="false" title="Protect with a password"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z"/><rect x="9.2" y="11" width="5.6" height="4.6" rx=".8"/><path d="M10.4 11V9.6a1.6 1.6 0 013.2 0V11"/></svg><span>Protect</span></button>
     <span class="rail-sep" aria-hidden="true"></span>
     <button class="tool" id="tPages" aria-pressed="false" title="Organize pages: reorder, rotate, insert, delete, split (P)"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg><span>Organize</span></button>
     <button class="tool" id="tCompare" aria-pressed="false" title="Compare side by side (R)"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 4v16"/></svg><span>Compare</span></button>
@@ -147,7 +149,7 @@ const S = {
   sources: {},       // sid -> { name, bytes, view, lib, fc, pages:[pdfjs page], items:[], an:[] }
   primary: null, name: '',
   order: [],         // [{ id, sid, idx, rot, blank:{w,h} }]
-  edits: { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [] },
+  edits: { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [], watermark: null },
   files: {},         // image files by id
   zoom: 1, mode: 'view', view: 'edit', sample: false,
   sel: null, pick: new Set(), undo: [], redo: [],
@@ -264,7 +266,7 @@ async function openPdf(bytes, name, isSample) {
   Object.assign(S, { primary: src.sid, name, sample: !!isSample, sel: null, undo: [], redo: [], rendered: {}, files: {}, previewIndex: {}, previewSig: {}, lastReport: null });
   if (S.preview) { try { S.preview.destroy(); } catch (e) {} S.preview = null; }
   S.pick = new Set();
-  S.edits = { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [] };
+  S.edits = { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [], watermark: null };
   S.order = src.pages.map((p, i) => ({ id: uid(), sid: src.sid, idx: i, rot: 0 }));
   S.initialOrder = orderSig();
   updateDocName();
@@ -410,7 +412,7 @@ async function buildPages() {
   setMode(S.mode, true);
   if (CMP.on) { if (CMP.mode === 'self') { CMP.list = S.order.map(e => ({ e })); buildCmp(); } drawDiffs(); }
   if (SPL.on) buildLower();
-  buildSideThumbs(); updatePageNav();
+  buildSideThumbs(); updatePageNav(); drawWatermarks();
 }
 function entrySig(eid) {
   const e = entry(eid); if (!e) return '';
@@ -572,7 +574,8 @@ function addHandle(node, e, kind, key) {
 }
 /* redraw edit boxes on the pages in view now; the rest catch up as they scroll in */
 function nearView(e) { const D = S.dom[e.id]; if (!D) return false; const r = D.div.getBoundingClientRect(), R = $('#desk').getBoundingClientRect(); return r.bottom > R.top - 800 && r.top < R.bottom + 800; }
-function refreshOverlays() { S.order.forEach(e => { const D = S.dom[e.id]; if (!D || !S.rendered[e.id]) return; if (nearView(e)) { D.ovDirty = false; drawOverlay(e); } else D.ovDirty = true; }); }
+function refreshOverlays() { drawWatermarks(); refreshOverlaysOnly(); }
+function refreshOverlaysOnly() { S.order.forEach(e => { const D = S.dom[e.id]; if (!D || !S.rendered[e.id]) return; if (nearView(e)) { D.ovDirty = false; drawOverlay(e); } else D.ovDirty = true; }); }
 
 /* ---------------- edits + history ---------------- */
 const snapshot = () => JSON.stringify({ edits: S.edits, order: S.order });
@@ -628,10 +631,10 @@ function pageEditsFor(eid) {
 function editCount() {
   const ids = new Set(S.order.map(e => e.id));
   return Object.values(S.edits.text).filter(t => ids.has(t.eid)).length + Object.values(S.edits.blocks).filter(t => ids.has(t.eid)).length + Object.values(S.edits.gfx || {}).filter(t => ids.has(t.eid)).length + Object.values(S.edits.images).filter(t => ids.has(t.eid)).length
-    + S.edits.addText.filter(t => ids.has(t.eid)).length + S.edits.addImages.filter(t => ids.has(t.eid)).length;
+    + S.edits.addText.filter(t => ids.has(t.eid)).length + S.edits.addImages.filter(t => ids.has(t.eid)).length + (S.edits.watermark ? 1 : 0);
 }
 /* build a PDF from part of the order (all pages for download) */
-async function build(entries, gc) {
+async function build(entries, gc, opts = {}) {
   const sources = {};
   entries.forEach(e => { if (!e.blank) sources[e.sid] = S.sources[e.sid].bytes; });
   const primary = entries.some(e => e.sid === S.primary) ? S.primary : (entries.find(e => !e.blank) || {}).sid;
@@ -640,7 +643,12 @@ async function build(entries, gc) {
     sources, primary: primary || null,
     order: entries.map(e => ({ sid: e.sid, idx: e.idx, rot: e.rot || 0, blank: e.blank })),
     edits: entries.map(e => pageEditsFor(e.id))
-  }, { gc, loadFont });
+  }, { gc, loadFont, watermark: opts.noWatermark || !S.edits.watermark ? null : wmFor(entries) });
+}
+// the watermark's page choice refers to the whole document; map it onto the pages being built
+function wmFor(entries) {
+  const on = E.pageSet(S.edits.watermark.pages, S.order.length);
+  return Object.assign({}, S.edits.watermark, { pages: entries.map((e, i) => on.has(S.order.indexOf(e)) ? String(i + 1) : '').filter(Boolean).join(',') || '0' });
 }
 let pvT = null, pvBusy = false, pvAgain = false;
 function schedulePreview() { clearTimeout(pvT); pvT = setTimeout(runPreview, 180); }
@@ -1544,6 +1552,200 @@ function selHandles(node, corners, onDown) {
   corners.forEach(c => { const h = el('div', 'hdl ' + c); h.title = c.length === 2 ? 'Drag to resize' : 'Drag to change the width'; h.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); onDown(ev, c); }); node.append(h); });
 }
 
+/* ---------------- watermark ---------------- */
+const WM_DEFAULT = { text: 'CONFIDENTIAL', family: 'Helvetica', bold: true, color: [0.78, 0.12, 0.12], opacity: 0.25, angle: 45, fit: true, size: 60, layout: 'center', layer: 'top', pages: '' };
+const WM_CSS_FONT = { Helvetica: 'Helvetica, Arial, sans-serif', Times: '"Times New Roman", Times, serif', Courier: '"Courier New", Courier, monospace' };
+const wmCtx = document.createElement('canvas').getContext('2d');
+function wmWidthAt1(wm) {
+  const st = { family: wm.family, bold: wm.bold !== false, italic: false, size: 1 };
+  if (!E.unsupportedChars(L, wm.text).length) return E.measureStd(L, wm.text, st);
+  wmCtx.font = (wm.bold !== false ? '700 ' : '400 ') + '100px ' + WM_CSS_FONT[wm.family || 'Helvetica'];
+  return wmCtx.measureText(wm.text).width / 100;
+}
+/* draw the watermark over each page on screen; the file gets the real thing when downloaded */
+function drawWatermarks() {
+  const wm = S.edits.watermark;
+  const on = wm && wm.text ? E.pageSet(wm.pages, S.order.length) : new Set();
+  const w1 = wm && wm.text ? wmWidthAt1(wm) : 0;
+  S.order.forEach((e, i) => {
+    const D = S.dom[e.id]; if (!D) return;
+    if (!D.wm) { D.wm = el('div', 'wm-layer'); D.div.insertBefore(D.wm, D.ov); }
+    D.wm.textContent = '';
+    if (!on.has(i)) return;
+    D.wm.classList.toggle('behind', wm.layer === 'behind');
+    const pg = basePage(e), vp = viewport(e);
+    const [x0, y0, x1, y1] = pg.view;
+    const box = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+    const rot = ((pg.rotate || 0) + (e.rot || 0)) % 360;
+    for (const pl of E.watermarkPlacements(box, rot, wm, w1)) {
+      const A = vp.convertToViewportPoint(pl.x, pl.y), B = vp.convertToViewportPoint(pl.x + Math.cos(pl.angle), pl.y + Math.sin(pl.angle));
+      const fpx = pl.size * vp.scale;
+      const sp = el('span', null, wm.text);
+      Object.assign(sp.style, { left: A[0] + 'px', top: (A[1] - fpx * 0.8) + 'px', fontSize: fpx + 'px', fontFamily: WM_CSS_FONT[wm.family || 'Helvetica'], fontWeight: wm.bold !== false ? 700 : 400,
+        color: toHex(wm.color || WM_DEFAULT.color), opacity: wm.opacity == null ? 0.3 : wm.opacity, transform: 'rotate(' + Math.atan2(B[1] - A[1], B[0] - A[0]) + 'rad)' });
+      D.wm.append(sp);
+    }
+  });
+}
+function setWatermark(patch, merge) {
+  commit(ed => { ed.watermark = patch === null ? null : Object.assign({}, ed.watermark || WM_DEFAULT, patch); }, merge);
+}
+function openPanel(name) {
+  if (!S.primary) return;
+  if (S.view !== 'edit') setView('edit');
+  if (S.mode === 'view' || S.mode !== 'edit') setMode('edit', true);
+  closeInline(true);
+  S.sel = { kind: 'panel', name };
+  renderInspector(); refreshOverlays();
+}
+function seg(options, value, onPick, label) {
+  const g = el('div', 'seg'); g.setAttribute('role', 'radiogroup'); if (label) g.setAttribute('aria-label', label);
+  options.forEach(([v, t]) => { const b = el('button', 'seg-b', t); b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(v === value)); b.onclick = () => onPick(v); g.append(b); });
+  return g;
+}
+function inspWatermark(body, title) {
+  title.textContent = 'Watermark';
+  const wm = S.edits.watermark;
+  if (!wm) {
+    body.append(el('p', 'hint pad', 'Stamp text such as CONFIDENTIAL or DRAFT across the pages. You see it here right away; it\'s added to the file when you download.'));
+    const presets = el('div', 'chips');
+    ['CONFIDENTIAL', 'DRAFT', 'COPY', 'FOR INTERNAL USE ONLY'].forEach(t => { const b = el('button', 'chip', t); b.type = 'button'; b.onclick = () => setWatermark({ text: t }); presets.append(b); });
+    body.append(sec('Start with', presets));
+    const acts = el('div', 'actions'); acts.append(button('Add watermark', 'primary', () => setWatermark({}))); body.append(acts);
+    return;
+  }
+  const txt = el('input'); txt.type = 'text'; txt.id = 'wmText'; txt.value = wm.text; txt.setAttribute('aria-label', 'Watermark text');
+  txt.oninput = () => setWatermark({ text: txt.value }, true);
+  const presets = el('div', 'chips');
+  ['CONFIDENTIAL', 'DRAFT', 'COPY', 'FOR INTERNAL USE ONLY'].forEach(t => { const b = el('button', 'chip' + (wm.text === t ? ' on' : ''), t); b.type = 'button'; b.onclick = () => setWatermark({ text: t }); presets.append(b); });
+  body.append(sec('Text', txt, presets));
+  // look
+  const fam = el('select'); fam.id = 'wmFont'; fam.setAttribute('aria-label', 'Font');
+  [['Helvetica', 'Sans'], ['Times', 'Serif'], ['Courier', 'Mono']].forEach(([v, t]) => { const o = el('option', null, t); o.value = v; o.selected = wm.family === v; fam.append(o); });
+  fam.onchange = () => setWatermark({ family: fam.value });
+  const bold = el('button', 'btn toggle-b' + (wm.bold !== false ? ' on' : ''), 'B'); bold.type = 'button'; bold.title = 'Bold'; bold.setAttribute('aria-pressed', String(wm.bold !== false)); bold.onclick = () => setWatermark({ bold: wm.bold === false });
+  const col = el('input'); col.type = 'color'; col.id = 'wmColor'; col.value = toHex(wm.color); col.title = 'Color'; col.setAttribute('aria-label', 'Color');
+  col.oninput = () => setWatermark({ color: fromHex(col.value) }, true);
+  const row1 = el('div', 'row'); row1.append(fam, bold, col);
+  const op = el('input'); op.type = 'range'; op.id = 'wmOpacity'; op.min = 5; op.max = 100; op.step = 5; op.value = Math.round((wm.opacity == null ? 0.3 : wm.opacity) * 100); op.setAttribute('aria-label', 'Opacity');
+  const opv = el('span', 'range-v', op.value + '%');
+  op.oninput = () => { opv.textContent = op.value + '%'; setWatermark({ opacity: op.value / 100 }, true); };
+  const opRow = el('label', 'range-row'); opRow.append(el('span', 'sub', 'Opacity'), op, opv);
+  const sizeFit = seg([[true, 'Fit to page'], [false, 'Fixed size']], wm.fit !== false, (v) => setWatermark({ fit: v }), 'Size');
+  const sizeIn = el('label', 'num'); const si = el('input'); si.type = 'number'; si.id = 'wmSize'; si.min = 6; si.max = 400; si.value = Math.round(wm.size || 60); si.setAttribute('aria-label', 'Size in points');
+  si.onchange = () => { const v = parseFloat(si.value); if (v > 0) setWatermark({ size: v, fit: false }); };
+  sizeIn.append(el('span', null, 'pt'), si);
+  const sizeRow = el('div', 'row'); sizeRow.append(sizeFit); if (wm.fit === false || wm.layout === 'tile') sizeRow.append(sizeIn);
+  body.append(sec('Look', row1, opRow, sizeRow));
+  // placement
+  const ang = seg([[45, 'Diagonal'], [0, 'Across'], [-45, 'Rising down']].map(([v, t]) => [v, t]), [45, 0, -45].includes(wm.angle) ? wm.angle : null, (v) => setWatermark({ angle: v }), 'Angle');
+  const angIn = el('label', 'num'); const ai = el('input'); ai.type = 'number'; ai.id = 'wmAngle'; ai.min = -90; ai.max = 90; ai.value = wm.angle; ai.setAttribute('aria-label', 'Angle in degrees');
+  ai.onchange = () => { const v = parseFloat(ai.value); if (isFinite(v)) setWatermark({ angle: Math.max(-90, Math.min(90, v)) }); };
+  angIn.append(el('span', null, '°'), ai);
+  const angRow = el('div', 'row'); angRow.append(ang, angIn);
+  const lay = seg([['center', 'Once, centred'], ['tile', 'Repeated']], wm.layout || 'center', (v) => setWatermark({ layout: v, fit: v === 'tile' ? false : wm.fit, size: v === 'tile' && wm.fit !== false ? 36 : wm.size }), 'Layout');
+  const layer = seg([['top', 'Over the page'], ['behind', 'Behind the content']], wm.layer || 'top', (v) => setWatermark({ layer: v }), 'Layer');
+  body.append(sec('Placement', angRow, lay, layer));
+  if (wm.layer === 'behind') body.append(el('p', 'hint pad', 'Pages with a solid white background can hide a watermark placed behind the content.'));
+  // pages
+  const pr = el('input'); pr.type = 'text'; pr.id = 'wmPages'; pr.placeholder = 'All pages'; pr.value = wm.pages || ''; pr.setAttribute('aria-label', 'Pages, for example 1-3, 5');
+  pr.onchange = () => setWatermark({ pages: pr.value.trim() });
+  const count = E.pageSet(wm.pages, S.order.length).size;
+  body.append(sec('Pages', pr, el('p', 'hint', wm.pages ? count + ' of ' + S.order.length + ' pages. Use ranges like 1-3, 5.' : 'Every page. Type ranges like 1-3, 5 to limit it.')));
+  const acts = el('div', 'actions'); acts.append(button('Remove watermark', 'danger', () => setWatermark(null)));
+  body.append(acts);
+  body.append(el('p', 'hint pad', 'Added to the file when you download. Export to Word leaves it out.'));
+}
+
+/* ---------------- password protection (applied when downloading) ---------------- */
+function protectDefaults() { return { on: false, open: false, openPw: '', restrict: true, ownerPw: '', print: true, copy: true, annotate: false }; }
+function updateSaveButton() {
+  const b = $('#save'), on = S.protect && S.protect.on;
+  b.classList.toggle('locked', !!on);
+  b.title = on ? 'Download a password-protected copy (Ctrl+S)' : 'Download the edited PDF (Ctrl+S)';
+  const lbl = b.querySelector('.lbl-sm'); if (lbl) lbl.textContent = on ? 'Download locked' : 'Download';
+}
+function inspProtect(body, title) {
+  title.textContent = 'Protect';
+  const P = S.protect || (S.protect = protectDefaults());
+  // the form survives redraws of the panel until it is applied or discarded
+  if (!S.pdraft) S.pdraft = Object.assign({}, P, { openPw2: P.openPw, ownerPw2: P.ownerPw });
+  const draft = S.pdraft;
+  body.append(el('p', 'hint pad', 'Lock the downloaded copy with a password. It uses 256-bit AES encryption, which Adobe Acrobat and Reader (version X and later) and other current PDF apps open normally.'));
+  const pwField = (id, label, val, onIn) => {
+    const wrap = el('div', 'pw');
+    const i = el('input'); i.type = 'password'; i.id = id; i.value = val; i.autocomplete = 'new-password'; i.setAttribute('aria-label', label); i.placeholder = label;
+    i.oninput = () => { onIn(i.value); check(); };
+    const eye = el('button', 'btn icon flat sm'); eye.type = 'button'; eye.title = 'Show password'; eye.setAttribute('aria-label', 'Show password');
+    eye.innerHTML = '<svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+    eye.onclick = () => { i.type = i.type === 'password' ? 'text' : 'password'; eye.title = i.type === 'password' ? 'Show password' : 'Hide password'; };
+    wrap.append(i, eye); return wrap;
+  };
+  const tick = (id, label, on, onCh) => { const l = el('label', 'chk'); const c = el('input'); c.type = 'checkbox'; c.id = id; c.checked = on; c.onchange = () => { onCh(c.checked); check(); }; l.append(c, el('span', null, label)); return { l, c }; };
+  // open password
+  const openBox = el('div', 'stack');
+  const openT = tick('pOpen', 'Require a password to open the file', draft.open, (v) => { draft.open = v; openBox.hidden = !v; });
+  openBox.append(pwField('pOpenPw', 'Open password', draft.openPw, v => draft.openPw = v), pwField('pOpenPw2', 'Type it again', draft.openPw2, v => draft.openPw2 = v));
+  openBox.hidden = !draft.open;
+  body.append(sec('Opening', openT.l, openBox, el('p', 'hint', 'Without it, nobody can see the contents. There is no way to recover a forgotten password.')));
+  // permissions
+  const permBox = el('div', 'stack');
+  const restrictT = tick('pRestrict', 'Restrict editing', draft.restrict, (v) => { draft.restrict = v; permBox.hidden = !v; });
+  const pr = tick('pPrint', 'Allow printing', draft.print, v => draft.print = v);
+  const cp = tick('pCopy', 'Allow copying text and images', draft.copy, v => draft.copy = v);
+  const an = tick('pAnnot', 'Allow comments and form filling', draft.annotate, v => draft.annotate = v);
+  permBox.append(pwField('pOwnerPw', 'Permissions password', draft.ownerPw, v => draft.ownerPw = v), pwField('pOwnerPw2', 'Type it again', draft.ownerPw2, v => draft.ownerPw2 = v), pr.l, cp.l, an.l);
+  permBox.hidden = !draft.restrict;
+  body.append(sec('Editing', restrictT.l, permBox, el('p', 'hint', 'Changing the document, its pages or these settings then needs the permissions password. Acrobat and most PDF apps enforce this, but some tools ignore it.')));
+  const msg = el('p', 'note warn'); msg.hidden = true; body.append(msg);
+  const acts = el('div', 'actions');
+  const apply = button(P.on ? 'Update protection' : 'Turn on protection', 'primary', () => {
+    if (!check()) return;
+    const { openPw2, ownerPw2, ...settings } = draft;
+    S.protect = Object.assign(settings, { on: true }); S.pdraft = null;
+    updateSaveButton(); renderInspector();
+    toast('Protection is on. Download now saves a locked copy.');
+  });
+  acts.append(apply);
+  if (P.on) acts.append(button('Turn off', '', () => { S.protect = protectDefaults(); S.pdraft = null; updateSaveButton(); renderInspector(); toast('Protection is off. Download saves an unlocked copy.'); }));
+  body.append(acts);
+  if (P.on) {
+    const st = el('div', 'protect-on');
+    st.innerHTML = '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/></svg>';
+    st.append(el('span', null, 'On. Download saves a locked copy' + (P.open ? ' that needs a password to open.' : ' that opens without a password but can\'t be edited.')));
+    body.insertBefore(st, body.firstChild.nextSibling);
+    const dl = button('Download locked PDF', '', () => download()); acts.append(dl);
+  }
+  body.append(el('p', 'hint pad', 'Passwords stay in this tab and are forgotten when you close the PDF.'));
+  function check() {
+    let m = '';
+    if (!draft.open && !draft.restrict) m = 'Choose at least one: an open password or restricted editing.';
+    else if (draft.open && !draft.openPw) m = 'Enter an open password.';
+    else if (draft.open && draft.openPw !== draft.openPw2) m = 'The open passwords don\'t match.';
+    else if (draft.restrict && !draft.ownerPw) m = 'Enter a permissions password.';
+    else if (draft.restrict && draft.ownerPw !== draft.ownerPw2) m = 'The permissions passwords don\'t match.';
+    else if (draft.open && draft.restrict && draft.openPw === draft.ownerPw) m = 'Use a different password for opening and for permissions.';
+    const { openPw2, ownerPw2, ...cur } = draft;
+    const dirty = JSON.stringify(cur) !== JSON.stringify(P);
+    msg.hidden = !m || !dirty; msg.textContent = m;
+    apply.disabled = !!m;
+    return !m;
+  }
+  check();
+}
+async function protectBytes(bytes) {
+  const P = S.protect;
+  if (!P || !P.on) return bytes;
+  status('Encrypting…');
+  try {
+    return await C.encryptPdf(L, bytes, {
+      userPassword: P.open ? P.openPw : '',
+      ownerPassword: P.restrict ? P.ownerPw : '',
+      permissions: P.restrict ? { print: P.print, copy: P.copy, annotate: P.annotate } : { all: true }
+    });
+  } finally { status(''); }
+}
+
 /* ---------------- images ---------------- */
 let imgCb = null;
 function pickImage(cb) { imgCb = cb; $('#imgIn').value = ''; $('#imgIn').click(); }
@@ -1586,6 +1788,9 @@ function styleControls(st, onChange, opts = {}) {
 }
 function renderInspector() {
   renderInspectorInner();
+  const pn = S.sel && S.sel.kind === 'panel' ? S.sel.name : null;
+  $('#tWm').setAttribute('aria-pressed', String(pn === 'watermark')); $('#tProtect').setAttribute('aria-pressed', String(pn === 'protect'));
+  if (pn) { ['#tView', '#tEdit', '#tText', '#tImg'].forEach(id => $(id).setAttribute('aria-pressed', 'false')); }
   const t = $('#inspTitle'), m = /^(.*) · page (\d+)$/.exec(t.textContent);
   if (m) { t.textContent = m[1]; t.append(el('span', 'sub', 'Page ' + m[2])); }
 }
@@ -1595,6 +1800,8 @@ function renderInspectorInner() {
   const s = S.sel, title = $('#inspTitle');
   if (!S.primary) { title.textContent = 'Folio'; body.append(el('p', 'empty', 'Open a PDF to start.')); return; }
   if (S.view === 'pages') return inspPages(body, title);
+  if (s && s.kind === 'panel' && s.name === 'watermark') return inspWatermark(body, title);
+  if (s && s.kind === 'panel' && s.name === 'protect') return inspProtect(body, title);
   if (s && s.kind === 'block') return inspBlock(body, title, s);
   if (s && s.kind === 'group') return inspGroup(body, title, s);
   if (s && (s.kind === 'gfx' || s.kind === 'gfxgroup')) return inspGfx(body, title, s);
@@ -1709,6 +1916,7 @@ function inspChanges(body, title) {
   title.textContent = 'Changes';
   const ids = new Set(S.order.map(e => e.id));
   const items = [];
+  if (S.edits.watermark) items.push({ eid: S.order[0] && S.order[0].id, kind: 'wm', t: S.edits.watermark });
   Object.values(S.edits.blocks).forEach(t => ids.has(t.eid) && items.push({ eid: t.eid, kind: 'block', t }));
   // graphic edits are listed once per table or drawing
   const seenG = new Set();
@@ -1749,9 +1957,11 @@ function inspChanges(body, title) {
   }
   for (const c of items) {
     const li = el('li');
-    li.append(el('span', 'pg', 'p.' + pageNo(c.eid)));
+    li.append(el('span', 'pg', c.kind === 'wm' ? 'All' : 'p.' + pageNo(c.eid)));
     const what = el('div', 'what');
-    if (c.kind === 'gfx') {
+    if (c.kind === 'wm') {
+      what.append(el('span', null, 'Watermark '), el('ins', null, c.t.text));
+    } else if (c.kind === 'gfx') {
       const t = c.t, eds = t.edits, what1 = t.group ? (t.group.table ? 'Table lines' : 'Drawing') : t.label;
       const acts = [eds.every(x => x.del) ? 'deleted' : null, !eds.every(x => x.del) && eds.some(x => x.move) ? 'moved' : null, eds.some(x => x.stroke || x.fill) ? 'recolored' : null, eds.some(x => x.lw != null) ? 'width changed' : null, eds.some(x => x.line) ? 'resized' : null].filter(Boolean);
       what.textContent = what1 + ' ' + acts.join(', ');
@@ -1770,14 +1980,15 @@ function inspChanges(body, title) {
     else what.textContent = 'Image added';
     const x = el('button', 'x', '✕'); x.title = 'Revert this change'; x.setAttribute('aria-label', 'Revert this change');
     x.onclick = (ev) => { ev.stopPropagation(); commit(ed => {
-      if (c.kind === 'gfx') c.t.keys.forEach(k => delete ed.gfx[k]);
+      if (c.kind === 'wm') ed.watermark = null;
+      else if (c.kind === 'gfx') c.t.keys.forEach(k => delete ed.gfx[k]);
       else if (c.kind === 'block') delete ed.blocks[c.t.key];
       else if (c.kind === 'text') delete ed.text[c.t.key];
       else if (c.kind === 'image') delete ed.images[c.t.key];
       else if (c.kind === 'addText') ed.addText = ed.addText.filter(y => y.id !== c.t.id);
       else ed.addImages = ed.addImages.filter(y => y.id !== c.t.id);
     }); };
-    li.onclick = () => { if (S.view !== 'edit') setView('edit'); S.dom[c.eid] && S.dom[c.eid].div.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (c.kind === 'block') { S.sel = { kind: 'block', key: c.t.key, eid: c.eid }; renderInspector(); refreshOverlays(); } if (c.kind === 'gfx') { const ee = entry(c.eid); const items = expandRef(ee, { kind: c.t.group ? 'gfxgroup' : 'gfx', key: c.t.key, eid: c.eid }); setSelection(c.eid, c.t.group ? items.slice(0, 1) : items); } };
+    li.onclick = () => { if (S.view !== 'edit') setView('edit'); S.dom[c.eid] && S.dom[c.eid].div.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (c.kind === 'wm') { openPanel('watermark'); return; } if (c.kind === 'block') { S.sel = { kind: 'block', key: c.t.key, eid: c.eid }; renderInspector(); refreshOverlays(); } if (c.kind === 'gfx') { const ee = entry(c.eid); const items = expandRef(ee, { kind: c.t.group ? 'gfxgroup' : 'gfx', key: c.t.key, eid: c.eid }); setSelection(c.eid, c.t.group ? items.slice(0, 1) : items); } };
     li.append(what, x); list.append(li);
   }
   body.append(list);
@@ -1788,7 +1999,7 @@ function inspChanges(body, title) {
     const sid = S.primary, n = S.sources[sid].pages.length;
     closeInline(false);
     S.undo.push(snapshot()); S.redo = [];
-    S.edits = { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [] };
+    S.edits = { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [], watermark: null };
     if (orderSig() !== S.initialOrder) { S.order = Array.from({ length: n }, (_, i) => ({ id: uid(), sid, idx: i, rot: 0 })); afterOrderChange(); } else afterChange();
   }));
   body.append(acts);
@@ -2116,13 +2327,15 @@ async function saveFile(name, blob) {
 async function download() {
   if (!S.primary) return;
   closeInline(true);
-  if (!hasChanges()) { toast('No changes to save yet.'); return; }
+  const locked = S.protect && S.protect.on;
+  if (!hasChanges() && !locked) { toast('No changes to save yet.'); return; }
   status('Building PDF…');
-  let out;
-  try { out = await build(S.order, true); } catch (err) { console.error(err); status(''); toast('Could not build the PDF: ' + (err.message || err)); return; }
+  let out, bytes;
+  try { out = await build(S.order, true); bytes = await protectBytes(out.bytes); } catch (err) { console.error(err); status(''); toast('Could not build the PDF: ' + (err.message || err)); return; }
   status('');
   if (out.report.missingChars && out.report.missingChars.length) toast('Some characters weren\'t in the bundled fonts: ' + out.report.missingChars.join(' '), 5000);
-  await saveFile(baseName() + '-edited.pdf', new Blob([out.bytes], { type: 'application/pdf' }));
+  await saveFile(baseName() + (hasChanges() ? '-edited' : '') + (locked ? '-protected' : '') + '.pdf', new Blob([bytes], { type: 'application/pdf' }));
+  if (locked) toast(S.protect.open ? 'Saved a locked copy. It needs the open password.' : 'Saved a locked copy. Editing needs the permissions password.');
 }
 
 /* ---------------- export to Word ---------------- */
@@ -2158,7 +2371,7 @@ async function exportWord() {
   const btn = $('#word'); btn.disabled = true;
   try {
     status('Preparing…');
-    const { bytes } = await build(entries, true);
+    const { bytes } = await build(entries, true, { noWatermark: true });
     const env = {
       L, E, pdfjs,
       canvas: (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; },
@@ -2180,6 +2393,8 @@ async function exportWord() {
 }
 
 /* ---------------- wiring ---------------- */
+$('#tWm').onclick = () => openPanel('watermark');
+$('#tProtect').onclick = () => openPanel('protect');
 $('#tView').dataset.mode = 'view'; $('#tView').onclick = () => { setView('edit'); setMode('view'); };
 $('#tEdit').dataset.mode = 'edit'; $('#tText').dataset.mode = 'addtext'; $('#tImg').dataset.mode = 'addimage';
 $('#tEdit').onclick = () => { setView('edit'); setMode('edit'); };
@@ -2246,6 +2461,7 @@ window.addEventListener('keydown', (ev) => {
   if (ev.key === 'r') setCompare(!CMP.on);
   if (CMP.on && (ev.key === 'n' || ev.key === 'N')) gotoHunk(ev.shiftKey ? -1 : 1);
   if (ev.key === 'v') { setView('edit'); setMode('view'); }
+  if (ev.key === 'w') { openPanel('watermark'); return; }
   if (ev.key === 'e') { setView('edit'); setMode('edit'); } if (ev.key === 't') setMode('addtext'); if (ev.key === 'i') setMode('addimage'); if (ev.key === 'p') setView(S.view === 'pages' ? 'edit' : 'pages');
 });
 let rzT; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (!S.primary) return; if (S.zoomMode) { setZoom(zoomFor(S.zoomMode), true); return; } if (!S.userZoomed) { const z = S.zoom; fitZoom(); if (z !== S.zoom) buildPages(); } }, 250); });
@@ -2686,7 +2902,7 @@ function updateChrome() {
   const has = !!S.primary;
   document.body.classList.toggle('no-doc', !has);
   $('#start').hidden = has;
-  ['#save', '#word', '#closeDoc', '#tView', '#tEdit', '#tText', '#tImg', '#tPages', '#tCompare', '#tThumbs', '#pgPrev', '#pgNext', '#pgNum', '#zIn', '#zOut', '#zSel'].forEach(id => { const n = $(id); if (n) n.disabled = !has; });
+  ['#save', '#word', '#closeDoc', '#tView', '#tEdit', '#tText', '#tImg', '#tWm', '#tProtect', '#tPages', '#tCompare', '#tThumbs', '#pgPrev', '#pgNext', '#pgNum', '#zIn', '#zOut', '#zSel'].forEach(id => { const n = $(id); if (n) n.disabled = !has; });
   if (has && S.view === 'pages') { $('#zIn').disabled = $('#zOut').disabled = $('#zSel').disabled = true; }
   if (has) updatePageNav(); else { $('#pgNum').value = ''; $('#pgCount').textContent = ''; }
 }
@@ -2703,7 +2919,8 @@ async function closePdf() {
   Object.values(S.sources).forEach(s => { try { s.view.destroy(); } catch (e) {} });
   if (S.preview) { try { S.preview.destroy(); } catch (e) {} }
   Object.assign(S, { sources: {}, primary: null, name: '', order: [], sel: null, undo: [], redo: [], rendered: {}, files: {}, preview: null, previewIndex: {}, previewSig: {}, lastReport: null, pick: new Set(), initialOrder: '', userZoomed: false, zoomMode: null });
-  S.edits = { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [] };
+  S.edits = { text: {}, blocks: {}, gfx: {}, images: {}, addText: [], addImages: [], watermark: null };
+  S.protect = protectDefaults(); S.pdraft = null; updateSaveButton();
   CMP.leftCache = {};
   $('#docName').textContent = ''; $('#fileIn').value = '';
   await buildPages();
@@ -2736,6 +2953,7 @@ $('#localInfo').onclick = showLocalInfo;
 $('#startOpen').onclick = () => { $('#fileIn').value = ''; $('#fileIn').click(); };
 if (/Mac|iP/.test(navigator.platform || navigator.userAgent)) $('#startMod').textContent = '⌘';
 
+S.protect = protectDefaults(); updateSaveButton();
 renderInspector();
 updateChrome();
 ensurePdfjs().catch((err) => { console.error(err); status(''); toast('The viewer could not load. Check your connection and reload.'); });

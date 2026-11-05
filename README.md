@@ -7,6 +7,8 @@ A PDF editor that runs entirely in the browser. Open a PDF, review it, edit it, 
 - **View** – read and review; select and copy text. Light and dark themes (toggle in the top bar).
 - **Edit** – click text to type in it (the document's own fonts are reused where possible), move or resize paragraphs, images, lines and whole tables (grid, shading and text together), select several items with a drag box, change line colors and widths.
 - **Add** text boxes and images.
+- **Watermark** – stamp text (CONFIDENTIAL, DRAFT, your own) across all or some pages: once in the centre or repeated, any angle, colour and opacity, over or behind the content.
+- **Protect** – lock the downloaded copy with 256-bit AES encryption (PDF security revision 6, which Adobe Acrobat and Reader X and later support): a password to open it, and/or a permissions password that blocks editing, with printing, copying and comments allowed or not.
 - **Organize** pages – reorder, rotate, delete, duplicate, insert blank pages or other PDFs, extract and split.
 - **Compare** – side-by-side review against the original or another revision, with differences highlighted.
 - **Split view** – drag down from the top of the page area to look at two places in the document at once.
@@ -40,7 +42,7 @@ The page is built from the files in `src/`:
 | `src/style.css` | Styles |
 | `src/engine.js` | PDF reading and rewriting (text, images, lines, tables, pages) |
 | `src/docx.js` | PDF to Word conversion |
-| `src/crypto.js` | Opening password-protected PDFs |
+| `src/crypto.js` | Opening password-protected PDFs and encrypting downloads |
 | `src/unifont.js` | Embedding fonts for Korean and other scripts |
 
 After editing, rebuild `index.html` and commit both:

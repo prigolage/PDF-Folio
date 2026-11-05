@@ -403,7 +403,91 @@
     }
   }
 
-  const api = { decryptPdf, md5, rc4, aesCbcDecrypt, aesCbcEncryptNoPad, sha256js, sha512js };
+  /* ---------- encrypting: AES-256 standard security (PDF 2.0, revision 6; Acrobat X and later) ---------- */
+  // permission bits (1-based bit numbers from the PDF spec)
+  const PERM = { print: 1 << 2, modify: 1 << 3, copy: 1 << 4, annotate: 1 << 5, fill: 1 << 8, access: 1 << 9, assemble: 1 << 10, printHigh: 1 << 11 };
+  function permissionsValue(o) {
+    // bits 7, 8 and 13-32 must be set; 1-2 must be clear
+    let p = 0xFFFFF0C0;
+    if (!o || o.all) return (p | 0xF3C) | 0;
+    p |= PERM.access;
+    if (o.print) p |= PERM.print | PERM.printHigh;
+    if (o.copy) p |= PERM.copy;
+    if (o.annotate) p |= PERM.annotate | PERM.fill;
+    if (o.fill) p |= PERM.fill;
+    if (o.modify) p |= PERM.modify;
+    if (o.assemble) p |= PERM.assemble;
+    return p | 0;
+  }
+  function randomBytes(n) {
+    const out = new Uint8Array(n);
+    const c = (root.crypto && root.crypto.getRandomValues) ? root.crypto : (typeof globalThis !== 'undefined' && globalThis.crypto);
+    if (!c || !c.getRandomValues) throw new Error('This browser cannot create secure random numbers, so it cannot encrypt files.');
+    c.getRandomValues(out); return out;
+  }
+  const hexOf = (b) => { let h = ''; for (let i = 0; i < b.length; i++) h += b[i].toString(16).padStart(2, '0'); return h; };
+  function aesEncryptData(key, data) {
+    const iv = randomBytes(16), pad = 16 - (data.length % 16);
+    const padded = new Uint8Array(data.length + pad); padded.set(data); padded.fill(pad, data.length);
+    return cat(iv, aesCbcEncryptNoPad(key, padded, iv));
+  }
+  /*
+   * opts: { userPassword (needed to open; may be empty), ownerPassword (needed to change permissions),
+   *         permissions: { all } | { print, copy, annotate, fill, modify, assemble } }
+   */
+  async function encryptPdf(L, input, opts) {
+    opts = opts || {};
+    const userPw = utf8(opts.userPassword || '').subarray(0, 127);
+    const ownerStr = opts.ownerPassword || hexOf(randomBytes(16));
+    const ownerPw = utf8(ownerStr).subarray(0, 127);
+    if (opts.userPassword && opts.ownerPassword && opts.userPassword === opts.ownerPassword) throw new Error('The open password and the permissions password must be different.');
+    const fileKey = randomBytes(32), zero = new Uint8Array(16);
+    const uvs = randomBytes(8), uks = randomBytes(8), ovs = randomBytes(8), oks = randomBytes(8);
+    const U = cat(await hashR6(userPw, uvs, new Uint8Array(0), 6), uvs, uks);
+    const UE = aesCbcEncryptNoPad(await hashR6(userPw, uks, new Uint8Array(0), 6), fileKey, zero);
+    const O = cat(await hashR6(ownerPw, ovs, U, 6), ovs, oks);
+    const OE = aesCbcEncryptNoPad(await hashR6(ownerPw, oks, U, 6), fileKey, zero);
+    const P = permissionsValue(opts.permissions);
+    const pb = new Uint8Array(16);
+    pb[0] = P & 255; pb[1] = (P >>> 8) & 255; pb[2] = (P >>> 16) & 255; pb[3] = (P >>> 24) & 255;
+    pb[4] = pb[5] = pb[6] = pb[7] = 255; pb[8] = 0x54; pb[9] = 0x61; pb[10] = 0x64; pb[11] = 0x62; pb.set(randomBytes(4), 12);
+    const Perms = aesCbcEncryptNoPad(fileKey, pb, zero);
+
+    const doc = await L.PDFDocument.load(input, { updateMetadata: false });
+    const ctx = doc.context;
+    const encStr = (obj, depth) => {
+      if (depth > 60 || !obj) return obj;
+      if (obj instanceof L.PDFString || obj instanceof L.PDFHexString) return L.PDFHexString.of(hexOf(aesEncryptData(fileKey, obj.asBytes())));
+      if (obj instanceof L.PDFDict) { for (const [k, v] of obj.entries()) { const nv = encStr(v, depth + 1); if (nv !== v) obj.set(k, nv); } return obj; }
+      if (obj instanceof L.PDFArray) { for (let i = 0; i < obj.size(); i++) { const v = obj.get(i), nv = encStr(v, depth + 1); if (nv !== v) obj.set(i, nv); } return obj; }
+      return obj;
+    };
+    for (const [ref, obj] of ctx.enumerateIndirectObjects()) {
+      if (obj instanceof L.PDFRawStream) {
+        encStr(obj.dict, 0);
+        obj.contents = aesEncryptData(fileKey, obj.contents);
+        obj.dict.set(L.PDFName.of('Length'), L.PDFNumber.of(obj.contents.length));
+      } else if (obj && obj.getContents && obj.dict) {
+        // a stream pdf-lib created itself: freeze its bytes, then encrypt them
+        const raw = L.PDFRawStream.of(obj.dict, aesEncryptData(fileKey, obj.getContents()));
+        encStr(raw.dict, 0);
+        raw.dict.set(L.PDFName.of('Length'), L.PDFNumber.of(raw.contents.length));
+        ctx.assign(ref, raw);
+      } else encStr(obj, 0);
+    }
+    const enc = ctx.obj({
+      Filter: 'Standard', V: 5, R: 6, Length: 256, P,
+      CF: { StdCF: { Type: 'CryptFilter', AuthEvent: 'DocOpen', CFM: 'AESV3', Length: 32 } }, StmF: 'StdCF', StrF: 'StdCF',
+      O: L.PDFHexString.of(hexOf(O)), U: L.PDFHexString.of(hexOf(U)), OE: L.PDFHexString.of(hexOf(OE)), UE: L.PDFHexString.of(hexOf(UE)), Perms: L.PDFHexString.of(hexOf(Perms)),
+      EncryptMetadata: true
+    });
+    ctx.trailerInfo.Encrypt = ctx.register(enc);
+    const id = L.PDFHexString.of(hexOf(randomBytes(16)));
+    ctx.trailerInfo.ID = ctx.obj([id, id]);
+    return doc.save({ useObjectStreams: false, updateFieldAppearances: false });
+  }
+
+  const api = { decryptPdf, encryptPdf, permissionsValue, md5, rc4, aesCbcDecrypt, aesCbcEncryptNoPad, sha256js, sha512js };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.PDFCrypto = api;
 })(typeof self !== 'undefined' ? self : this);
