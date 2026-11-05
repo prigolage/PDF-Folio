@@ -593,12 +593,17 @@ body.no-doc #pages, body.no-doc #pagesView, body.no-doc #thumbs, body.no-doc #in
 /* hideable side panels */
 body.hide-rail .rail { display: none; }
 body.hide-insp #inspector { display: none; }
-.panes { display: inline-flex; gap: 0; }
-.panes svg .fill { fill: currentColor; stroke: none; opacity: 0; }
-.panes .btn[aria-pressed="true"] { background: transparent; color: var(--ink); }
-.panes .btn[aria-pressed="true"] svg .fill { opacity: .9; }
-.panes .btn[aria-pressed="false"] { color: var(--faint); }
-.panes .btn:hover:not(:disabled) { background: var(--field); }
-body.no-doc .panes { display: none; }
-@media (max-width: 860px) { .panes { display: none; } body.hide-rail .rail { display: flex; } body.hide-insp #inspector { display: flex; } }
+@media (max-width: 860px) { .edge-tab { display: none !important; } body.hide-rail .rail { display: flex; } body.hide-insp #inspector { display: flex; } }
+.work { position: relative; }
+.edge-tab { position: absolute; z-index: 7; width: 14px; height: 44px; padding: 0; display: grid; place-items: center; cursor: pointer;
+  background: var(--panel); color: var(--faint); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(17,22,34,.08); }
+.edge-tab.left { border-left: 0; border-radius: 0 8px 8px 0; }
+.edge-tab.right { border-right: 0; border-radius: 8px 0 0 8px; }
+.edge-tab svg { width: 8px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+.edge-tab.closed svg { transform: scaleX(-1); }
+.edge-tab:hover { color: var(--ink); background: var(--raise); width: 18px; }
+.edge-tab.right:hover { margin-left: -4px; }
+.edge-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+body.no-doc .edge-tab { display: none; }
+@media (prefers-reduced-motion: reduce) { .edge-tab svg { transition: none; } }
 </style>
