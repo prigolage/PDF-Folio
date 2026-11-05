@@ -26,6 +26,10 @@
     <button class="btn icon flat" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><svg class="i" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 000 12h3"/></svg></button>
     <span class="sep"></span>
     <button class="local-badge" id="localInfo" title="Your PDF stays on this device. Click for details."><svg class="i" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/></svg><span class="lbl-sm">On this device only</span></button>
+    <span class="panes" role="group" aria-label="Side panels">
+      <button class="btn icon flat" id="toggleRail" aria-pressed="true" title="Hide the tools ([)" aria-label="Show tools"><svg class="i" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15"/><path class="fill" d="M5 6h2.5v12H5z"/></svg></button>
+      <button class="btn icon flat" id="toggleInsp" aria-pressed="true" title="Hide the side panel (])" aria-label="Show side panel"><svg class="i" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M15 4.5v15"/><path class="fill" d="M16.5 6H19v12h-2.5z"/></svg></button>
+    </span>
     <button class="btn icon flat" id="theme" title="Switch to dark theme" aria-label="Switch to dark theme"></button>
     <button class="btn flat" id="open" title="Open a PDF (Ctrl+O)"><svg class="i" viewBox="0 0 24 24"><path d="M4 19V5a1 1 0 011-1h5l2 2h7a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1z"/></svg><span class="lbl-sm">Open</span></button>
     <button class="btn flat" id="word" title="Export an editable Word document"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M8.5 11l1.5 6 2-4.5 2 4.5 1.5-6"/></svg><span class="lbl-sm">Export to Word</span></button>
@@ -1596,6 +1600,7 @@ function openPanel(name) {
   if (S.mode === 'view' || S.mode !== 'edit') setMode('edit', true);
   closeInline(true);
   S.sel = { kind: 'panel', name };
+  if (!paneShown('insp')) setPane('insp', true);
   renderInspector(); refreshOverlays();
 }
 function seg(options, value, onPick, label) {
@@ -1938,7 +1943,7 @@ function inspChanges(body, title) {
     body.append(empty);
     const keys = el('dl', 'keys');
     const mac = /Mac|iP/.test(navigator.platform || navigator.userAgent), mod = mac ? '⌘' : 'Ctrl';
-    [['View', ['V']], ['Edit', ['E']], ['Add text', ['T']], ['Add image', ['I']], ['Organize pages', ['P']], ['Compare', ['R']], ['Select all on page', [mod, 'A']], ['Nudge selection', ['←', '→']], ['Undo', [mod, 'Z']], ['Download', [mod, 'S']]].forEach(([label, ks]) => {
+    [['View', ['V']], ['Edit', ['E']], ['Add text', ['T']], ['Add image', ['I']], ['Organize pages', ['P']], ['Compare', ['R']], ['Select all on page', [mod, 'A']], ['Nudge selection', ['←', '→']], ['Hide tools or side panel', ['[', ']']], ['Undo', [mod, 'Z']], ['Download', [mod, 'S']]].forEach(([label, ks]) => {
       const dt = el('dt', null, label), dd = el('dd'); ks.forEach(k => dd.append(el('kbd', null, k))); keys.append(dt, dd);
     });
     body.append(sec('Shortcuts', keys));
@@ -2457,9 +2462,12 @@ window.addEventListener('keydown', (ev) => {
     if (s.kind === 'addText') { commit(ed => { ed.addText = ed.addText.filter(x => x.id !== s.key); }); S.sel = null; renderInspector(); }
     if (s.kind === 'addImage') { commit(ed => { ed.addImages = ed.addImages.filter(x => x.id !== s.key); }); S.sel = null; renderInspector(); }
   }
-  if (S.view === 'pages' && S.pick.size && (ev.key === '[' || ev.key === ']')) rotatePicked(ev.key === '[' ? -90 : 90);
+  if (S.view === 'pages' && S.pick.size && (ev.key === '[' || ev.key === ']')) { rotatePicked(ev.key === '[' ? -90 : 90); return; }
   if (ev.key === 'r') setCompare(!CMP.on);
   if (CMP.on && (ev.key === 'n' || ev.key === 'N')) gotoHunk(ev.shiftKey ? -1 : 1);
+  if (ev.key === '[') { setPane('rail', !paneShown('rail')); return; }
+  if (ev.key === ']') { setPane('insp', !paneShown('insp')); return; }
+  if (ev.key === '\\') { const show = !paneShown('rail') || !paneShown('insp') ? true : false; setPane('rail', show, true); setPane('insp', show); return; }
   if (ev.key === 'v') { setView('edit'); setMode('view'); }
   if (ev.key === 'w') { openPanel('watermark'); return; }
   if (ev.key === 'e') { setView('edit'); setMode('edit'); } if (ev.key === 't') setMode('addtext'); if (ev.key === 'i') setMode('addimage'); if (ev.key === 'p') setView(S.view === 'pages' ? 'edit' : 'pages');
@@ -2896,6 +2904,22 @@ function applyTheme(t) {
 $('#theme').onclick = () => { const t = effectiveTheme() === 'dark' ? 'light' : 'dark'; applyTheme(t); try { localStorage.setItem('folio.theme', t); } catch (err) {} };
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(document.documentElement.dataset.theme));
 try { applyTheme(localStorage.getItem('folio.theme')); } catch (err) { applyTheme(null); }
+
+/* ---------------- side panels: show or hide ---------------- */
+function setPane(which, show, quiet) {
+  const cls = which === 'rail' ? 'hide-rail' : 'hide-insp';
+  document.body.classList.toggle(cls, !show);
+  const b = $(which === 'rail' ? '#toggleRail' : '#toggleInsp');
+  b.setAttribute('aria-pressed', String(show));
+  b.title = which === 'rail' ? (show ? 'Hide the tools ([)' : 'Show the tools ([)') : (show ? 'Hide the side panel (])' : 'Show the side panel (])');
+  try { localStorage.setItem('folio.' + which, show ? '1' : '0'); } catch (err) {}
+  // the page area changed size: keep "fit" zoom fitting
+  if (!quiet) window.dispatchEvent(new Event('resize'));
+}
+const paneShown = (which) => !document.body.classList.contains(which === 'rail' ? 'hide-rail' : 'hide-insp');
+$('#toggleRail').onclick = () => setPane('rail', !paneShown('rail'));
+$('#toggleInsp').onclick = () => setPane('insp', !paneShown('insp'));
+try { ['rail', 'insp'].forEach(w => { if (localStorage.getItem('folio.' + w) === '0') setPane(w, false, true); }); } catch (err) {}
 
 /* ---------------- no document: start screen ---------------- */
 function updateChrome() {
